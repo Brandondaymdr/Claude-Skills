@@ -22,6 +22,30 @@ N8N_API_KEY=your-api-key
 N8N_CREDENTIALS_TEMPLATE_URL=your-template-url
 ```
 
+### Shopify Storefront (`/shopify-storefront`)
+
+Shopify Online Store 2.0 theme development for Cheersworthy.com spirits store.
+
+**Features:**
+- Liquid templating (sections, blocks, snippets, schema)
+- Theme app extensions for age gates and custom blocks
+- Spirit-specific metafields (ABV, tasting notes, origin, age statement)
+- Storefront API (GraphQL) for headless/WhiskeySomm integration
+- Spirits e-commerce compliance (TTB, state shipping, age verification)
+- Checkout customization and shipping restrictions
+
+### Shopify Sidekick (`/shopify-sidekick`)
+
+Build Shopify Sidekick AI extensions — data sources and action intents for the Cheersworthy app.
+
+**Features:**
+- Data source extensions (`admin.app.tools.data`) — expose searchable app data to Sidekick
+- Action intent extensions (`admin.app.intent.link`) — let merchants invoke app actions via natural language
+- `tools.json` schema definitions and `shopify.tools.register` handlers
+- MCP Resource Links format for optimal Sidekick rendering
+- Performance optimization (400ms response time, 4,000 token limits)
+- Full Cheersworthy examples (spirit search, order fulfillment, collection analytics)
+
 ### Video Editing (`/video`)
 
 Video editing with FFmpeg and Remotion - stitching, transitions, captions, teasers, transcription.
@@ -87,6 +111,7 @@ If available, prefer MCP server tools for node discovery and validation before f
 
 ```
 skills/
+<<<<<<< Updated upstream
 ├── n8n/
 │   ├── SKILL.md
 │   └── references/
@@ -94,6 +119,27 @@ skills/
 │       ├── build-process.md
 │       └── expressions.md
 └── video/
+=======
+├── toast-admin/              # Toast POS daily operations
+│   ├── SKILL.md
+│   └── references/
+├── toast-api/                # Toast POS API integrations
+│   ├── SKILL.md
+│   └── references/
+├── circle.so-skills/         # Circle.so community platform
+│   ├── circle-so-admin/
+│   └── circle-so-api/
+├── Sidekick-shopify/         # Shopify Plugin (storefront + sidekick skills)
+│   ├── plugin.json
+│   ├── shared/               # Cheersworthy config, Shopify dev patterns
+│   └── skills/
+│       ├── shopify-storefront/
+│       └── shopify-sidekick/
+├── n8n/                      # n8n workflow automation
+│   ├── SKILL.md
+│   └── references/
+└── video/                    # Video editing
+>>>>>>> Stashed changes
     ├── SKILL.md
     └── references/
         ├── captions.md

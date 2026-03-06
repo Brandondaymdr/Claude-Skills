@@ -1,0 +1,14 @@
+{
+  "name": "shopify",
+  "version": "1.0.0",
+  "description": "Comprehensive Shopify development plugin for building, managing, and extending Shopify stores. Houses skills for Storefront development (themes, Liquid, sections), Sidekick AI extensions (data sources, actions, intents), and future Shopify surfaces (Functions, Flow, Hydrogen).",
+  "author": "Brandon Day",
+  "skills": [
+    "skills/shopify-storefront",
+    "skills/shopify-sidekick"
+  ],
+  "shared": [
+    "shared/cheersworthy-config.md",
+    "shared/shopify-dev-patterns.md"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "shopify-storefront",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building Cheersworthy.com and need a custom product page section for spirits that shows tasting notes, ABV, origin, age statement, and serving suggestions from metafields. It needs to work in the theme editor so merchants can rearrange blocks. Give me the full Liquid section with schema.",
+      "expected_output": "Complete Liquid section file with schema block containing settings for each spirit attribute, metafield access using product.metafields.cheersworthy namespace, blocks for tasting notes/ABV/origin/age/serving, and presets for theme editor. Schema should use appropriate setting types (text, richtext, range).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We need an age verification gate for cheersworthy.com that blocks all content until the visitor confirms they're 21+. It should be accessible, store the verification in a cookie for 30 days, and not show on policy pages. Build this as a theme app extension.",
+      "expected_output": "Theme app extension with age-gate.liquid block, JavaScript for cookie management and modal behavior, accessible markup (keyboard navigation, aria attributes, focus trapping), conditional rendering that excludes policy/captcha pages, and shopify.extension.toml configuration.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I need to set up metafield definitions for all our spirit-specific product data (tasting notes, ABV, origin, distillery, age statement, awards, pairing notes, serving suggestions) so they show up in the Shopify admin product editor. What's the best approach and give me the GraphQL mutations.",
+      "expected_output": "GraphQL metafieldsSet mutations for each spirit attribute under the 'cheersworthy' namespace with appropriate types (single_line_text_field, number_decimal, multi_line_text_field, json), plus metafieldDefinitionCreate mutations to make them visible in admin product editor with proper validation rules.",
+      "files": []
+    }
+  ]
+}
