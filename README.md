@@ -1,76 +1,101 @@
-# Brandon's Claude Skills
+# BenAI Skills
 
-A personal skills repo for Claude Code and Cowork — Toast POS, Circle.so, n8n automation, video editing, and more.
+A plugin marketplace for Claude Code providing automation capabilities through specialized skills.
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| **toast-admin** | Toast POS daily operations — menus, orders, employees, reports, payments, kitchen ops |
-| **toast-api** | Toast POS REST API — orders, menus, labor, stock, analytics, webhooks |
-| **circle-so-admin** | Circle.so admin — spaces, members, events, courses, community settings |
-| **circle-so-api** | Circle.so API v2 — programmatic community management and automations |
-| **n8n** | n8n workflow automation via REST API with incremental testing |
-| **video** | Video editing with FFmpeg and Remotion — stitching, captions, teasers |
+### n8n Automation
+
+Build, test, and deploy n8n workflows via REST API with incremental testing.
+
+**Capabilities:**
+- Workflow creation and management
+- 40+ node type references
+- JavaScript/Python code patterns
+- Expression syntax guide
+- Common pitfalls and solutions
+
+**Setup:**
+```bash
+# Create .env file with:
+N8N_API_URL=https://your-n8n-instance.com
+N8N_API_KEY=your-api-key
+N8N_CREDENTIALS_TEMPLATE_URL=your-template-url
+```
+
+### Video Editing
+
+Video editing with FFmpeg and Remotion for stitching, transitions, captions, teasers, and transcription.
+
+**Capabilities:**
+- Video stitching and concatenation
+- TikTok-style dynamic captions
+- Teaser generation
+- Audio transcription (whisper.cpp)
+- Title cards and graphics
 
 ## Installation
 
-### Cowork (Desktop App)
-
-1. Go to **Cowork Settings > Skills**
-2. Package any skill folder as a `.skill` file and upload it
-3. Or connect this repo as a skills source
-
-### Claude Code (CLI)
-
-Add this repo as a plugin marketplace:
+### Option 1: Add Marketplace
 
 ```bash
-claude plugin marketplace add Brandondaymdr/Claude-Skills
+/plugin marketplace add naveedharri/benai-skills
 ```
 
-Or install individual skills:
+### Option 2: Install Individual Plugins
 
 ```bash
-claude plugin install toast-admin@Brandondaymdr/Claude-Skills
-claude plugin install toast-api@Brandondaymdr/Claude-Skills
+/plugin install n8n@benai-skills
+/plugin install video@benai-skills
+```
+
+## Usage
+
+### n8n Automation
+
+```
+/n8n Create a workflow that receives webhook data and saves it to Google Sheets
+```
+
+### Video Editing
+
+```
+/video Add TikTok-style captions to my video
 ```
 
 ## Project Structure
 
 ```
 .
-├── CLAUDE.md                  # Skill overview for Claude
-├── README.md                  # This file
+├── CLAUDE.md              # Skill overview for Claude
+├── README.md              # This file
 ├── .claude-plugin/
-│   └── marketplace.json       # Plugin registry
+│   └── marketplace.json   # Plugin registry
 └── skills/
-    ├── toast-admin/           # Toast POS daily operations
+    ├── n8n/
     │   ├── SKILL.md
     │   └── references/
-    ├── toast-api/             # Toast POS API integrations
-    │   ├── SKILL.md
-    │   └── references/
-    ├── circle.so-skills/      # Circle.so community platform
-    │   ├── circle-so-admin/
-    │   └── circle-so-api/
-    ├── n8n/                   # n8n workflow automation
-    │   ├── SKILL.md
-    │   └── references/
-    └── video/                 # Video editing
+    │       ├── pitfalls.md
+    │       ├── build-process.md
+    │       └── expressions.md
+    └── video/
         ├── SKILL.md
         └── references/
+            ├── captions.md
+            └── transcription.md
 ```
 
 ## Creating New Skills
 
 1. Create a folder under `skills/` with your skill name
-2. Add a `SKILL.md` with YAML frontmatter (`name` and `description`) and instructions
+2. Add a `SKILL.md` with activation triggers and guidelines
 3. Add reference documents in a `references/` subfolder
 4. Register in `.claude-plugin/marketplace.json`
-5. Push to this repo
+
+## License
+
+MIT License - See LICENSE file for details.
 
 ## Credits
 
-- n8n and video skills originally from [naveedharri/benai-skills](https://github.com/naveedharri/benai-skills)
-- Toast POS and Circle.so skills by Brandon Day
+Original repository: [naveedharri/benai-skills](https://github.com/naveedharri/benai-skills)

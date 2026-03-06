@@ -1,0 +1,29 @@
+{
+  "name": "benai-skills",
+  "version": "1.0.0",
+  "description": "BenAI expert skills marketplace - n8n automation, video editing, and more",
+  "author": {
+    "name": "Naveed Harri",
+    "email": "naveedharri@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "n8n",
+      "version": "1.0.0",
+      "description": "Build, test, and deploy n8n workflows via REST API with incremental testing",
+      "path": "./skills/n8n",
+      "author": "BenAI",
+      "keywords": ["n8n", "workflow", "automation", "api", "integration"],
+      "capabilities": ["workflow-automation", "api-integration"]
+    },
+    {
+      "name": "video",
+      "version": "1.0.0",
+      "description": "Video editing with FFmpeg and Remotion - stitching, transitions, captions, teasers",
+      "path": "./skills/video",
+      "author": "BenAI",
+      "keywords": ["video", "ffmpeg", "remotion", "captions", "editing"],
+      "capabilities": ["video-editing", "transcription"]
+    }
+  ]
+}
