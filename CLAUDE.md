@@ -111,15 +111,6 @@ If available, prefer MCP server tools for node discovery and validation before f
 
 ```
 skills/
-<<<<<<< Updated upstream
-├── n8n/
-│   ├── SKILL.md
-│   └── references/
-│       ├── pitfalls.md
-│       ├── build-process.md
-│       └── expressions.md
-└── video/
-=======
 ├── toast-admin/              # Toast POS daily operations
 │   ├── SKILL.md
 │   └── references/
@@ -135,15 +126,16 @@ skills/
 │   └── skills/
 │       ├── shopify-storefront/
 │       └── shopify-sidekick/
+├── plaid/                    # Plaid financial platform plugin
+│   ├── manifest.json
+│   ├── mcps/
+│   └── skills/
 ├── n8n/                      # n8n workflow automation
 │   ├── SKILL.md
 │   └── references/
 └── video/                    # Video editing
->>>>>>> Stashed changes
     ├── SKILL.md
     └── references/
-        ├── captions.md
-        └── transcription.md
 ```
 
 ## Loading a Skill
