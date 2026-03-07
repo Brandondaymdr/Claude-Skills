@@ -1,24 +1,32 @@
 ---
 name: instagram
 description: >-
-  Comprehensive Instagram management skill for running Instagram Business accounts
-  using the Instagram Graph API via MCP tools. Use this skill whenever the user
-  mentions Instagram, wants to publish posts/reels/stories/carousels, check analytics
-  or insights, manage comments, research hashtags, monitor mentions, or do anything
-  related to Instagram account management. Also trigger when the user mentions
-  "IG", "Insta", social media posting, content publishing, engagement metrics,
-  follower demographics, or social media management for Instagram. Essential for
-  managing the carlagentileyoga and carlagentileday Instagram accounts and any
-  Instagram Business or Creator account operations. Even if the user just says
-  "post this" or "check engagement" in an Instagram context, use this skill.
+  Comprehensive Instagram management and content strategy skill for running
+  Instagram Business accounts. Combines the Instagram Graph API (via MCP tools)
+  with deep yoga/wellness content strategy expertise. Use this skill whenever the
+  user mentions Instagram, wants to publish posts/reels/stories/carousels, check
+  analytics or insights, manage comments, research hashtags, monitor mentions, or
+  do anything related to Instagram account management. ALSO trigger when the user
+  asks for content ideas, posting advice, caption help, hashtag suggestions,
+  growth strategies, engagement tips, content calendar planning, or any Instagram
+  marketing/strategy guidance — even without mentioning specific tools. Also
+  trigger for "IG", "Insta", social media posting, content publishing, engagement
+  metrics, follower demographics, or social media management. Essential for
+  managing the carlagentileyoga and carlagentileday Instagram accounts. Even if
+  the user just says "what should Carla post?" or "how do we grow the yoga
+  account?" or "check engagement", use this skill.
 ---
 
 # Instagram Account Manager
 
-This skill provides comprehensive tools and guidance for managing Instagram Business
-accounts through the Instagram Graph API. It powers the `instagram-mcp-server` which
-gives you direct access to Instagram's publishing, analytics, and community management
-capabilities.
+This skill provides both **strategic content guidance** and **technical API tools** for
+managing Instagram Business accounts. It combines a comprehensive yoga/wellness content
+strategy (see `references/content-strategy.md`) with the `instagram-mcp-server` MCP
+tools for publishing, analytics, and community management.
+
+When the user asks for advice, strategy, or "what to post," consult the content strategy
+reference first. When they want to execute (publish, check analytics, manage comments),
+use the MCP tools. Often you'll do both — advise on what to create, then help publish it.
 
 ## Managed Accounts
 
@@ -101,26 +109,45 @@ Video content requires processing time on Instagram's servers:
 
 ---
 
-## Writing Great Captions
+## Content Strategy & Advice
 
-When helping write captions for the yoga accounts, keep these principles in mind:
+**Read `references/content-strategy.md` for the full guide.** It covers:
 
-### For @carlagentileyoga
-- Warm, encouraging tone that welcomes all levels
-- Include relevant yoga/wellness hashtags
-- Use line breaks for readability
-- End with a call to action (question, invitation to practice, link to classes)
-- Mix educational content with personal practice insights
+- **Content pillars** — 5 pillars for @carlagentileyoga (Educate 30%, Inspire 20%,
+  Demonstrate 25%, Connect 15%, Convert 10%) with specific content ideas for each
+- **Posting cadence** — How often to post each format, and best times for yoga niche
+- **Format strategy** — When to use Reels vs. Carousels vs. Stories vs. Feed posts
+- **Caption formulas** — Hook + Value + CTA structure with yoga-specific templates
+- **Hashtag strategy** — Categories, rotation, and research workflow using MCP tools
+- **Growth tactics** — Collaborations, engagement-first approach, SEO on Instagram
+- **Funnel strategy** — Moving followers from IG → Circle community → class purchases
+- **Reels & Stories best practices** — Structure, technical tips, what the algorithm wants
+- **Content calendar template** — Weekly plan you can customize
+- **Analytics-driven optimization** — Weekly review checklist and KPIs to track
 
-### For @carlagentileday
-- More personal, lifestyle-oriented voice
-- Authentic and relatable
-- Can be more casual than the yoga account
+When the user asks for content advice, pull from this reference and tailor it to their
+specific question. Always ground recommendations in what the data shows — use the
+analytics tools to back up strategy decisions.
 
-### Hashtag Strategy
-Use `instagram_search_hashtag` and `instagram_get_hashtag_media` to research hashtags
-before posting. Look at what's performing well in the yoga/wellness space. Aim for a
-mix of broad reach hashtags and niche community tags.
+### Business Goals (always keep these in mind)
+1. **Grow followers and reach** — prioritize Reels and shareable carousels
+2. **Drive to Circle community** — tease exclusive content, show community value
+3. **Sell classes and workshops** — testimonials, countdowns, limited-time offers
+
+### Voice & Tone
+
+**@carlagentileyoga:**
+- Warm, encouraging, welcoming to all levels
+- Expert but approachable — teaches without condescending
+- Uses line breaks for readability
+- Every post ends with a CTA (question, save prompt, link to community)
+- Mixes educational value with personal practice insights
+
+**@carlagentileday:**
+- More personal, lifestyle-oriented, authentic
+- How yoga integrates into real daily life
+- Casual and relatable
+- Cross-promotes yoga account naturally, not forcefully
 
 ---
 
@@ -186,3 +213,11 @@ Read `references/api-reference.md` for:
 - Media format requirements
 - Rate limit details
 - Error code reference
+
+Read `references/content-strategy.md` for:
+- Content pillars and posting cadence
+- Caption formulas and hashtag strategy
+- Growth tactics and funnel strategy
+- Reels/Stories best practices
+- Content calendar template
+- Analytics-driven optimization
