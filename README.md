@@ -34,6 +34,18 @@ Video editing with FFmpeg and Remotion for stitching, transitions, captions, tea
 - Audio transcription (whisper.cpp)
 - Title cards and graphics
 
+### Instagram Management
+
+Comprehensive Instagram account management via the Instagram Graph API.
+
+**Capabilities:**
+- Publish posts, reels, stories, and carousels
+- Track analytics and audience demographics
+- Moderate comments
+- Research hashtags and monitor mentions
+
+See [`instagram-mcp-server/`](./instagram-mcp-server/) for setup and details.
+
 ## Installation
 
 ### Option 1: Add Marketplace
@@ -71,18 +83,18 @@ Video editing with FFmpeg and Remotion for stitching, transitions, captions, tea
 ├── README.md              # This file
 ├── .claude-plugin/
 │   └── marketplace.json   # Plugin registry
-└── skills/
-    ├── n8n/
-    │   ├── SKILL.md
-    │   └── references/
-    │       ├── pitfalls.md
-    │       ├── build-process.md
-    │       └── expressions.md
-    └── video/
-        ├── SKILL.md
-        └── references/
-            ├── captions.md
-            └── transcription.md
+├── skills/
+│   ├── n8n/
+│   │   ├── SKILL.md
+│   │   └── references/
+│   └── video/
+│       ├── SKILL.md
+│       └── references/
+├── instagram-mcp-server/  # Instagram MCP server
+│   ├── src/
+│   └── package.json
+├── SKILL.md               # Instagram skill
+└── references/            # Instagram API docs
 ```
 
 ## Creating New Skills

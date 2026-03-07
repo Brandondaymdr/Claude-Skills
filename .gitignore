@@ -1,6 +1,8 @@
 .DS_Store
 *.env
+*.env.local
 *.secret
 __pycache__/
 node_modules/
+dist/
 .venv/
