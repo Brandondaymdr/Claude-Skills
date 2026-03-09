@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "adobe-premiere", "runs": [{"id": "eval-1-short-form-workflow-with_skill", "prompt": "I have a 45-minute yoga class recording that I filmed in 4K horizontal. I need to turn it into 5-6 short clips between 60-90 seconds each for Instagram Reels. What's the best workflow in Premiere to do this efficiently? I want vertical 9:16 with captions and background music that ducks under the dialogue.", "eval_id": 1, "outputs": [{"name": "answer.md", "type": "text", "content": "# Adobe Premiere Pro Workflow: 45-Minute Yoga Class \u2192 5-6 Instagram Reels\n\nYou're taking a 45-minute 4K horizontal yoga class and turning it into vertical Instagram Reels (60-90 seconds each). Here's the exact workflow to do this efficiently in Premiere Pro.\n\n---\n\n## Phase 1: Project Setup (5 minutes)\n\n### 1.1 Create a Vertical Sequence Template\n\nThis is your master template for all reels. You'll duplicate it for each short.\n\n1. **File > New > Sequence**\n2. Under the **Settings** tab:\n   - **Frame Size**: 1080 \u00d7 1920 (width \u00d7 height)\n   - **Frame Rate**: 29.97 fps (matches standard video specs)\n   - **Pixel Aspect Ratio**: Square Pixels (1.0)\n   - **Fields**: No Fields (Progressive)\n3. Name this sequence: `TEMPLATE_Reel_1080x1920`\n4. Set up the template with standard elements:\n   - Add a Color Matte adjustment layer at the top (for any letterboxing)\n   - Create a music track at a default comfortable level\n   - Position where you'll add captions (center-lower area, avoiding bottom 20%)\n\n### 1.2 Save This as a Custom Preset\n\nRight-click the sequence in the Project panel > **New Sequence From Clip** and save it as a preset called \"Instagram Reel 1080x1920\". This saves you time on future projects.\n\n---\n\n## Phase 2: Finding the Best Moments (10-15 minutes)\n\nThis is the critical step that determines which yoga moments become viral reels.\n\n### Option A: Text-Based Editing (Fastest - RECOMMENDED)\n\nThis is the secret weapon for long-form content:\n\n1. **Import your 45-minute yoga class** into the project\n2. Select the clip in the Project panel\n3. Open **Captions workspace** (Window > Captions)\n4. Click **Transcribe** (Premiere's AI speech-to-text will transcribe your instructor's cues)\n5. Browse the transcript \u2014 it's much faster than watching 45 minutes\n6. **Search** for keywords you want (\"breathing\", \"flexibility\", \"strengthen\", \"modification\") to find teaching moments\n7. Identify 8-10 strong segments that are naturally 60-90 seconds when isolated\n\n**Why this works**: Instead of watching at 1.5x speed for 30 minutes, you scan the transcript in 5 minutes and identify the best teaching moments, transitions between poses, and breathing cues.\n\n### Option B: Marker Workflow (If You Want to Watch)\n\nIf you prefer to watch the footage:\n\n1. Play the long-form clip at **1.5-2x speed** (press L multiple times to adjust playback speed)\n2. Press **M** whenever you hear a great moment to feature:\n   - A clear, motivational statement from the instructor\n   - A natural class transition (e.g., \"Let's move to the next standing pose\")\n   - A moment where students are executing a challenging pose\n3. Double-click each marker to add a note (e.g., \"Sun salutation flow \u2014 perfect for beginners\")\n4. Color-code by content type:\n   - **Green** = Strong standalone moment\n   - **Yellow** = Good but needs context/intro\n   - **Red** = Great quote but needs b-roll or visual enhancement\n\n### Selecting Your 5-6 Moments\n\nLook for these types of segments that perform well as Instagram Reels:\n\n- **Tip moments**: \"The #1 mistake in downward dog is...\" (hook viewers immediately)\n- **Flow segments**: Smooth 60-90 second sequences (like sun salutations, flow series)\n- **Breathing/meditation**: Calming sequences that encourage viewers to try the practice\n- **Modifications**: \"If you have tight hamstrings, try this instead...\" (highly engaged audience)\n- **Challenging sequences**: Advanced poses or flows that inspire/motivate\n\n---\n\n## Phase 3: Extracting and Reframing (20-30 minutes)\n\n### 3.1 Create Individual Reel Sequences\n\nFor each of your 5-6 chosen moments:\n\n1. **Right-click your TEMPLATE sequence** > **Duplicate**\n2. Rename it: `Reel_01_SunSalutation` (be descriptive)\n3. Repeat for each reel (you'll have 6-7 sequence copies)\n\n### 3.2 Extract the Moment\n\nChoose one method:\n\n**Method A: Pancake Timeline (Fastest)**\n\n1. Open your long-form sequence in the Timeline (top pane)\n2. Open one of your reel sequences below it (drag the divider between them)\n3. In the Source Monitor, play to find your moment\n4. Set **In (I)** and **Out (O)** points to mark the 60-90 second segment you want\n5. Drag directly from the Source Monitor to your reel sequence's timeline\n6. Repeat for each segment\n\n**Method B: Trim in Source Monitor**\n\n1. Select the long-form clip in the Source Monitor\n2. Play to your desired moment\n3. Press **I** to set In point\n4. Play to the end of that moment\n5. Press **O** to set Out point\n6. Drag from Source Monitor to your reel sequence\n7. This extracts exactly what you marked\n\n### 3.3 Reframe from Horizontal (16:9) to Vertical (9:16)\n\nYour 4K horizontal footage is roughly 16:9. You need to fit it into a 9:16 frame and keep the instructor in frame.\n\n**Method A: Auto Reframe Effect (RECOMMENDED for yoga)**\n\nAuto Reframe uses AI motion tracking to follow the subject. Perfect for yoga because the instructor moves through various poses.\n\n1. Select your horizontal clip in the vertical reel sequence\n2. **Effects Panel > Search \"Auto Reframe\"**\n3. Drag **Auto Reframe** onto the clip\n4. In **Effect Controls** panel:\n   - **Motion Tracking**: Select **\"Slower Motion\"** (ideal for talking-head yoga instruction)\n   - The AI will track the instructor and reframe automatically\n5. **Play and review** \u2014 if tracking is slightly off, manually adjust:\n   - Click the **Position** parameter in Effect Controls\n   - Add keyframes where the tracking goes wrong\n   - Drag the position to manually correct the framing\n\n**Pro tip for yoga**: Most yoga instruction is relatively stationary (the instructor talks through poses). Auto Reframe will handle this well. If there are sections with more dynamic movement (full flow sequences), you may need a few manual position keyframes.\n\n**Method B: Manual Scale + Position (Most Control)**\n\nIf you want precise creative control:\n\n1. Select the horizontal clip\n2. Go to **Effect Controls > Motion**\n3. **Scale**: Increase to 175-225% (depending on the shot, experiment until it fills the frame nicely)\n4. **Position**: Adjust the X value to frame the instructor properly\n   - For teaching moments (talking to camera), center the face\n   - Leave space at the bottom for captions\n5. For sequences where the instructor moves significantly, add position keyframes:\n   - Place playhead where movement starts\n   - Click the **stopwatch** next to Position to create a keyframe\n   - Move playhead to where movement ends\n   - Drag Position to follow the instructor\n   - Premiere interpolates the motion\n\n**Safe framing for vertical yoga content**:\n- Avoid placing important content in the top 15% (platform UI covers it)\n- Avoid the bottom 20% (captions and platform buttons)\n- Center faces and key poses in the middle 65% of the frame\n\n---\n\n## Phase 4: Editing the Reel (15-20 minutes per reel)\n\n### 4.1 The Hook (First 1-3 seconds - CRITICAL)\n\nThe hook is what stops the scroll. For yoga content, options include:\n\n- **Text overlay hook**: \"Master the perfect downward dog in 90 seconds\" (appears before the video starts)\n- **Audio hook**: Start with the most compelling statement your instructor makes (\"This breathing technique will calm your nervous system in 60 seconds\")\n- **Visual hook**: The instructor in a striking pose or motion, not a slow intro\n- **Start mid-flow**: Trim the intro entirely \u2014 if there's 5 seconds of setup talk, cut it. Start 3 seconds in when energy picks up\n\n**Implement the text hook**:\n1. Select the **Text tool (T)** in the toolbar\n2. Click in the Program Monitor to add text\n3. Type your hook (e.g., \"90-Second Morning Yoga Flow\")\n4. Style in **Essential Graphics panel**:\n   - Font: Bold, sans-serif (Montserrat Bold, Arial Black, Oswald)\n   - Size: 80-100pt (large enough for mobile)\n   - Color: White with a dark outline or shadow\n   - Position: Center of frame, in the safe zone\n5. Add a simple entrance animation (optional): Select text > Essential Graphics > scroll down to **Animations** and choose \"Scale In\"\n\n### 4.2 Trim Away Dead Space\n\nUse tight, aggressive jump-cut editing (this is the style expected in short-form):\n\n1. Play through your clip with **J-K-L** shuttle controls (J = backward, K = stop, L = forward)\n2. Whenever you find a pause, \"um\", or moment where energy dips, press **Cmd/Ctrl+K** to add a cut at the playhead\n3. Select the unwanted segment\n4. Press **Shift+Delete** (Ripple Delete) to remove it and close the gap\n\n**Or use Text-Based Editing for surgical precision**:\n\n1. Open **Captions workspace**\n2. The transcript for this reel appears \u2014 select the filler words/pauses (\"um\", \"so\", \"like\", or long pauses)\n3. Delete them from the transcript \u2014 Premiere removes those portions from the timeline automatically\n4. This is much faster than manually finding each pause\n\n**Pace rule for shorts**: Cut every 2-5 seconds for maximum retention. If there's a 10-second static shot, viewers will scroll past.\n\n### 4.3 Create Visual Variety (If You Only Have One Camera Angle)\n\nIf your yoga class was filmed with a single camera, create artificial \"cuts\" using scale keyframes:\n\n1. Select the clip in the Timeline\n2. Go to **Effect Controls > Motion > Scale**\n3. At the opening, set Scale to 100%\n4. Move playhead 5-10 seconds forward\n5. Increase Scale to 115-120% (a subtle zoom)\n6. Move playhead another 5-10 seconds\n7. Reduce Scale back to 100%\n8. This creates a fake \"cut\" that looks like the shot changed, boosting visual interest\n\n---\n\n## Phase 5: Add Captions (Auto-Generated - 5 minutes)\n\nCaptions are mandatory for short-form content. Many viewers watch without sound.\n\n1. Select your reel sequence in the Timeline\n2. Open **Captions workspace** (Window > Captions)\n3. Click **Transcribe Sequence** (Premiere transcribes the audio)\n4. Once done, click **Create Captions**\n5. Choose your caption style:\n   - **\"Word-by-word highlight\"** = Each word lights up as spoken (highest engagement for educational content)\n   - **\"Large, centered text\"** = 2-3 words at a time in large bold type (easiest to read on mobile)\n6. **Adjust position and styling**:\n   - Drag captions to center-lower area (not at the very bottom where UI overlaps)\n   - Font size: minimum 60pt for readability\n   - Style: White text with dark background box or outline\n7. Review the captions \u2014 they're often 80-90% accurate. Edit any misheard words by clicking them in the transcript\n\n---\n\n## Phase 6: Add Background Music + Dialogue Ducking (10-15 minutes)\n\nBackground music under the instructor's voice is standard for yoga reels. It adds production value and encourages viewers to turn up sound.\n\n### 6.1 Import Music\n\n1. **File > Import** and select your music file\n2. Drag it to the **Music track** in your reel sequence (place it below the dialogue track)\n3. Position it to match your clip duration (start at 0:00, extend to the end of the reel)\n\n**Music selection for yoga**: Look for calm, meditative, or gentle instrumental tracks (no lyrics). Spotify, Epidemic Sound, and Artlist have great yoga/wellness music libraries.\n\n### 6.2 Set Up Auto Ducking\n\nDucking automatically lowers the music volume when the instructor is talking, then brings it back up during pauses. This is professional-sounding mixing without manual fader riding.\n\n1. Select your **dialogue clip** (the yoga class audio)\n2. Open **Essential Sound panel** (Window > Essential Sound)\n3. Tag it as **Dialogue** (click the Dialogue button)\n4. Now select your **music clip**\n5. Click **Music** tag in Essential Sound\n6. In the Music section, enable **Ducking**\n7. Check **\"Duck Against\"** and select the dialogue track/clip from the dropdown\n8. Adjust the ducking parameters:\n   - **Duck Amount**: -15 to -20 dB (how much the music drops when dialogue plays)\n   - **Sensitivity**: Default is fine (how aggressively Premiere detects speech)\n   - **Fade Duration**: 200-300 ms (how quickly the volume transitions \u2014 longer = smoother)\n9. Click **Generate Keyframes**\n\nThe ducking automation appears on the music clip's volume rubber band \u2014 you can manually fine-tune if needed.\n\n### 6.3 Fine-Tune Fade In/Out\n\n- **Fade in**: At the start of your reel, fade the music in over 0.5 seconds (avoids abrupt entry)\n- **Fade out**: At the end, fade music out over 1-2 seconds (gives a polished finish)\n\nTo add fade handles:\n1. Select the music clip\n2. Drag the **corner** of the clip downward (in the volume area) to create a fade\n3. Position the fade to your desired length\n\n---\n\n## Phase 7: Color Grade (Optional but Recommended - 10 minutes)\n\nConsistent color across all 5-6 reels feels more professional. You have two options:\n\n### Option A: Fast Batch Approach (Recommended)\n\n1. Create one adjustment layer with your color grade\n2. Duplicate this adjustment layer on top of each reel sequence\n3. All reels match automatically\n\n**Quick color grade for yoga content**:\n- Open **Lumetri Color panel** (Window > Lumetri Color)\n- Under **Basic Correction**:\n  - **Exposure**: If footage is dark, lift it slightly (+0.3 to +0.8)\n  - **Contrast**: +15 to +25 (yoga footage often benefits from a slight contrast boost)\n  - **Highlights**: Reduce slightly if the instructor's face is blown out\n  - **Shadows**: Lift slightly to recover detail\n  - **Vibrance**: +10 to +20 (makes skin tones look healthier, colors more appealing)\n- **Creative > Look**: Browse presets \u2014 \"Soft\" or \"Cool\" LUTs work well for wellness content\n- This takes 2-3 minutes and gives a cohesive look across all reels\n\n### Option B: Match Your Existing Grade\n\nIf your 45-minute long-form class already has color grading:\n\n1. Open the long-form sequence\n2. Go to the effect controls of the color grade applied to it\n3. Copy those settings (right-click effect > Copy)\n4. Create an adjustment layer\n5. Apply the same Lumetri color effect to the adjustment layer\n6. Paste the settings (right-click > Paste)\n7. Place this adjustment layer on top of each reel sequence\n\n---\n\n## Phase 8: Export Settings (5 minutes per reel)\n\n### 8.1 Export Each Reel\n\n**For Instagram Reels (recommended settings)**:\n\n1. **File > Export Media** (Cmd/Ctrl+M)\n2. Set filename: `YogaReel_01_SunSalutation.mp4`\n3. Under **Export Settings**:\n   - **Format**: H.264\n   - **Preset**: Match Source - High Bitrate\n   - **Video**:\n     - Resolution: 1080 \u00d7 1920\n     - Frame Rate: 29.97 fps\n     - Bitrate Encoding: VBR, 2-Pass\n     - Target Bitrate: 15-20 Mbps\n     - Max Bitrate: 25 Mbps\n   - **Audio**:\n     - Codec: AAC\n     - Bitrate: 320 kbps\n     - Channels: Stereo\n     - Sample Rate: 48 kHz\n4. Click **Export**\n\nThese settings give Instagram high-quality source material (which they'll re-encode anyway) and ensure sharp, vibrant reels on mobile.\n\n### 8.2 Batch Export (If You Have Multiple Reels)\n\nDon't export one by one. Use Adobe Media Encoder to queue all 6 reels and let it process in the background:\n\n1. For each reel sequence: **File > Export Media**\n2. Instead of clicking **Export**, click **Queue** (bottom right)\n3. This sends the job to Adobe Media Encoder\n4. Repeat for all 6 sequences\n5. In Media Encoder, review all jobs, then press the large **Play** button to start the batch\n6. Media Encoder renders all 6 files while you continue editing\n\n---\n\n## Phase 9: Test & Review (5-10 minutes)\n\nBefore uploading, validate each reel:\n\n### Desktop Review Checklist\n- [ ] Hook grabs attention in first 3 seconds (test with fresh eyes)\n- [ ] Captions are visible and accurate (no misheard words)\n- [ ] Vertical framing: instructor is centered, no important content cut off\n- [ ] Audio: dialogue is clear, music ducks appropriately, no awkward peaks\n- [ ] Pacing: cuts feel natural, no long static shots, energy is maintained\n- [ ] Aspect ratio: 9:16 correct, no letterboxing or bars\n\n### Mobile Phone Review (ESSENTIAL)\nExport one test version and watch it on your phone in the actual Instagram app:\n- [ ] Text is readable at arm's length\n- [ ] The instructor's face is visible and in-focus\n- [ ] Captions aren't covered by the platform UI (username, follow button, etc.)\n- [ ] Overall mood/vibe matches your yoga brand\n\n---\n\n## Complete Workflow Timeline\n\n```\nPhase 1: Project Setup               ~5 min\nPhase 2: Find moments (transcribe)  ~10-15 min\nPhase 3: Reframe 5-6 clips           ~20-30 min\nPhase 4: Edit each reel              ~15-20 min \u00d7 6 = 90-120 min\nPhase 5: Auto captions              ~5 min per reel \u00d7 6 = 30 min\nPhase 6: Music + ducking            ~10-15 min \u00d7 6 = 60-90 min\nPhase 7: Color grade (optional)      ~10 min total (applies to all)\nPhase 8: Export (batch)              ~30-60 min (Media Encoder runs in background)\nPhase 9: Test on phone               ~10 min\n\nTOTAL: 4-5 hours from raw footage to 6 Instagram Reels ready to upload\n```\n\n---\n\n## Pro Tips for Maximum Efficiency\n\n### 1. **Batch Process by Phase**\nDon't fully finish one reel, then start the next. Instead:\n- Transcribe and mark all 6 moments first\n- Reframe all 6 clips\n- Edit all 6 for tight cuts\n- Add captions to all 6\n- Add music/ducking to all 6\n- Export all 6 in batch mode\n\nThis is 30% faster than completing one reel at a time.\n\n### 2. **Use Keyboard Shortcuts to Save Minutes**\n- **I/O**: Set In/Out points\n- **Cmd/Ctrl+K**: Cut at playhead\n- **Shift+Delete**: Ripple delete (close gaps)\n- **J/K/L**: Play backward/stop/forward (for scrubbing through footage)\n- **Cmd/Ctrl+M**: Export Media\n- **Y**: Slip Edit (reposition a clip's content without moving the clip itself)\n\n### 3. **Create Reusable Templates**\nOnce you build your first set of 6 reels, save:\n- The project file itself (copy it for future yoga classes)\n- Your color grade as a saved Lumetri Look\n- Your caption style settings\n- Your export preset\n\nNext yoga class? Duplicate your project, replace the source footage, and you're 50% faster.\n\n### 4. **Music Ducking Adjustment**\nIf your ducking sounds unnatural (music volume jumping too aggressively), try:\n- Increasing **Fade Duration** to 400-500ms for a smoother transition\n- Reducing **Duck Amount** to -12 dB instead of -18 dB (music is slightly more present under dialogue)\n- Manually adjusting keyframes: Click and drag the volume rubber band to fine-tune\n\n### 5. **Caption Safety**\nAlways position captions so they won't be covered by:\n- Instagram username + profile pic (top left)\n- Like/comment/share buttons (bottom right)\n- Follow button (top right)\n\nAim for captions in the center-lower third of the frame, leaving at least 60px of padding from the bottom.\n\n### 6. **Preview Your Vertical Framing**\nBefore committing to Auto Reframe, watch 10 seconds of playback to ensure:\n- The instructor's face is always visible\n- Key poses aren't cut off on the sides\n- The framing feels intentional (not random)\n\nIf Auto Reframe misses key moments, add 1-2 manual position keyframes to correct.\n\n---\n\n## Frequently Encountered Issues & Fixes\n\n### Issue: \"Auto Reframe is cutting off the instructor's head\"\n**Fix**: Switch to manual reframing (Scale + Position). Increase scale to 200%, then manually position to center the head.\n\n### Issue: \"Music ducking is too aggressive \u2014 dialogue sounds too loud in the mix\"\n**Fix**: Reduce Duck Amount from -18dB to -12dB. The music should complement, not disappear.\n\n### Issue: \"Captions are hard to read over the yoga mat\"\n**Fix**: Add a semi-transparent dark background box behind the text in Essential Graphics panel (add a background shape).\n\n### Issue: \"Export is taking forever\"\n**Fix**: You're exporting a 4K source scaled down. Enable **GPU acceleration** in Export Settings if available (Nvidia NVENC or Apple ProRes). Or use Media Encoder to batch-export multiple files in parallel.\n\n### Issue: \"The reframed video looks zoomed in and blocky\"\n**Fix**: Your scale percentage is too high. Reduce from 250% to 180-200%. You may be losing quality if source is low-res.\n\n---\n\n## Summary: Your Command Sequence\n\n1. Transcribe the 45-minute yoga class (Captions > Transcribe)\n2. Scan transcript, mark 5-6 moments you want to turn into reels\n3. Create TEMPLATE_Reel_1080x1920 vertical sequence\n4. Duplicate template 6 times (one per reel)\n5. Extract each moment, apply Auto Reframe effect\n6. Trim tight cuts, remove dead air (use Cmd/Ctrl+K + Shift+Delete)\n7. Add text hook overlays (T tool, Essential Graphics)\n8. Auto-generate captions (Captions > Create Captions)\n9. Add background music, enable ducking (Essential Sound > Music > Ducking)\n10. Quick color grade via adjustment layer (Lumetri Color, +15 contrast, +15 vibrance)\n11. Batch export all 6 to 1080\u00d71920 H.264, 15-20 Mbps (File > Export, Queue to Media Encoder)\n12. Test on your phone in the Instagram app\n13. Upload to Instagram\n\nThis workflow respects your time and takes advantage of Premiere's automation (transcription, Auto Reframe, auto-ducking, batch export) to handle the repetitive work while you focus on creative decisions.\n\n---\n\n## Reference: Instagram Reel Best Practices for Yoga Content\n\n- **Hook**: First 3 seconds determine if someone scrolls. Start with the most interesting statement or visual.\n- **Length**: 60-90 seconds is the sweet spot (keeps viewers engaged, fits Instagram's best-performing range)\n- **Captions**: Almost mandatory \u2014 many viewers scroll without audio\n- **Music**: Calming, meditative instrumental (no lyrics for teaching content)\n- **Transitions**: Jump cuts are expected and accepted in short-form (they add energy)\n- **Aspect Ratio**: 9:16 always \u2014 don't letterbox or add black bars\n- **Mobile first**: Always preview on your actual phone before uploading\n\n---\n\n**You're ready to create 5-6 Instagram Reels from your 45-minute yoga class in about 4-5 hours with this workflow. The key is using Premiere's AI tools (transcription, Auto Reframe, auto-ducking, auto-captions) and batching similar tasks together rather than finishing one reel at a time.**\n"}], "grading": null}, {"id": "eval-1-short-form-workflow-without_skill", "prompt": "I have a 45-minute yoga class recording that I filmed in 4K horizontal. I need to turn it into 5-6 short clips between 60-90 seconds each for Instagram Reels. What's the best workflow in Premiere to do this efficiently? I want vertical 9:16 with captions and background music that ducks under the dialogue.", "eval_id": 1, "outputs": [{"name": "answer.md", "type": "text", "content": "# Efficient Premiere Pro Workflow: 45-Minute Yoga Class to Instagram Reels\n\n## Overview\nThis guide outlines a professional workflow to convert a 4K horizontal yoga class into 5-6 vertical 9:16 short-form clips (60-90 seconds each) with captions and background music that ducks under dialogue.\n\n---\n\n## Phase 1: Project Setup\n\n### Create a New Project\n1. **Start a new Premiere Pro project** with these specifications:\n   - Resolution: 1080x1920 (9:16 aspect ratio, full HD)\n   - Frame rate: Match your source (typically 24, 30, or 60fps)\n   - Sequence settings: Go to File > New > Sequence and select \"Instagram\" presets, then customize to 9:16\n\n### Alternative Approach: Master Sequence\n- Create a master sequence at 4K horizontal first (to preserve quality and ease editing)\n- Use an Adjustment Layer or Nested Sequence to scale and position content in 9:16 format\n- This allows you to reposition the video to focus on the instructor\n\n---\n\n## Phase 2: Efficient Logging and Selection\n\n### Pre-Edit Your Source Material\n1. **Import the 45-minute source clip** into the project\n2. **Create a logging sequence**: Drag the source to a new sequence (this won't affect the original)\n3. **Mark key moments** using markers:\n   - Press M to add markers at transition points (pose transitions, new sequences)\n   - Name each marker (e.g., \"Warm-up,\" \"Standing Poses,\" \"Balance,\" \"Cool Down\")\n   - This helps identify your best 60-90 second segments\n4. **Review the timeline** and identify 5-6 natural segments that stand alone well:\n   - Each yoga sequence should have a clear beginning and end\n   - Avoid cutting mid-pose or mid-instruction\n   - Prioritize visually dynamic segments for Instagram\n\n### Selective Approach\n- You don't need to use every segment; choose the most engaging ones\n- Consider variety: mix standing poses, balance work, stretches, and breathing exercises\n\n---\n\n## Phase 3: Creating Individual Clips\n\n### Method 1: Multiple Sequences (Recommended for Efficiency)\n1. **Create 5-6 separate sequences** (File > New > Sequence > 9:16 preset)\n   - Name them: \"Clip_1_Warmup,\" \"Clip_2_Standing,\" etc.\n2. **Drag the source clip** into each sequence\n3. **Use In and Out points** to trim each segment:\n   - Press I at the start point, O at the end point\n   - Right-click > Add to Sequence (or use Ctrl+click drag)\n   - Trim to exact 60-90 second lengths\n4. **Scale and position** the 4K horizontal video for 9:16:\n   - With the video selected, go to Effect Controls > Motion\n   - Adjust Scale to fill the frame (aim for ~130-150% to fill the 9:16 vertical space)\n   - Reposition using Position sliders to focus on the instructor's upper body\n   - Use the Program Monitor to preview framing\n\n### Vertical Framing Strategy\n- Position the instructor in the upper-middle portion of the frame\n- Leave room at the bottom for captions\n- Ensure hands and key body parts remain visible\n- Test each clip's framing before moving to the next step\n\n---\n\n## Phase 4: Adding Captions\n\n### Essential Graphics Panel Workflow\n1. **Essential Graphics Panel** (Window > Essential Graphics)\n2. **Add a text layer** for each clip:\n   - Click Create New Graphic\n   - Choose a clean, readable font (sans-serif like Arial, Helvetica, or Montserrat)\n   - Font size: 40-60pt for readability on mobile\n   - Color: White with slight drop shadow or outline for contrast against the yoga footage\n3. **Captions to include**:\n   - Pose names (e.g., \"Warrior I,\" \"Tree Pose\")\n   - Brief instructions or benefits\n   - Breathing cues\n4. **Caption timing**:\n   - Use keyframes to fade text in/out (3-4 second duration per caption block)\n   - Change captions every 8-12 seconds for engagement\n5. **Positioning**:\n   - Lower third of the frame\n   - Leave headroom for visual movement\n   - Center-aligned or left-aligned (avoid right alignment in vertical video)\n\n### Alternative: Captions Track\n- Create a captions/graphics track above your video track\n- Use separate text layers for each caption block\n- Easier to manage multiple text elements\n\n---\n\n## Phase 5: Background Music and Audio Mixing\n\n### Adding Background Music\n1. **Import background music** to a new audio track below your dialogue/instruction track\n2. **Use royalty-free music sources**:\n   - Epidemic Sound, Artlist, Soundly, or YouTube Audio Library\n   - Search for \"yoga background music,\" \"ambient,\" or \"lo-fi chill\"\n3. **Place music** across all clips or separate tracks per clip\n\n### Audio Ducking Workflow\n1. **Create a master mix**:\n   - Audio track 1: Dialogue/instruction (yoga instructor audio from original)\n   - Audio track 2: Background music (set to lower volume)\n\n2. **Automatic Ducking using Dynamic Link**:\n   - Select the background music track\n   - Right-click > Edit in Adobe Audition (optional, for more control)\n   - Or use Premiere's built-in Loudness Radar and VU Meter\n\n3. **Manual Ducking (Simpler Approach)**:\n   - Click the disclosure arrow on the background music track to reveal keyframes\n   - Create volume keyframes at sections where dialogue occurs\n   - Lower the volume to -12dB to -18dB during instruction\n   - Gradually raise back to -6dB to -9dB during quiet yoga moments\n\n4. **Envelope Tool** (Most Professional):\n   - Select the background music clip\n   - Window > Audio Clip Mixer\n   - Use the Volume envelope directly on the clip in the timeline\n   - Draw a curve to smoothly duck music when voice-over is present\n\n### Audio Levels\n- Dialogue: -12dB to -6dB (dominant)\n- Background music during dialogue: -20dB to -18dB\n- Background music during quiet moments: -9dB to -6dB\n- Final output: Aim for -3dB to -1dB (leave headroom)\n\n---\n\n## Phase 6: Export Settings for Instagram\n\n### Optimal Instagram Reels Specs\n1. **Sequence settings**:\n   - Aspect ratio: 9:16 (1080x1920)\n   - Frame rate: 30fps (standard for reels)\n   - Audio: Stereo, 48kHz\n\n2. **Export settings** (File > Export > Media):\n   - **Format**: H.264 (MP4)\n   - **Video codec**: H.264\n   - **Bitrate**: 8-10 Mbps (quality + file size balance)\n   - **Audio codec**: AAC\n   - **Audio bitrate**: 128 kbps\n   - **Frame rate**: 29.97fps or 30fps\n   - **Resolution**: 1080x1920\n\n3. **QuickTime Alternative**:\n   - **Format**: QuickTime\n   - **Codec**: ProRes 422 HQ (for archival, larger files)\n   - Transcode to MP4 after export if needed\n\n### Batch Export\n- Use Media Encoder (File > Export to Adobe Media Encoder)\n- Queue all 5-6 sequences at once\n- Apply the same export preset to all clips\n- Let it render overnight if needed\n\n---\n\n## Phase 7: Timeline Organization Best Practices\n\n### Keep It Clean\n1. **Color-code tracks**:\n   - Video track: Blue\n   - Dialogue/instruction: Green\n   - Music/SFX: Yellow\n   - Graphics/Captions: Purple\n2. **Label sequences clearly**: \"Clip1_60sec_WarriorPose,\" \"Clip2_75sec_BalanceSequence\"\n3. **Organize bins**: Create folders for:\n   - Source footage\n   - Audio tracks\n   - Graphics/captions\n   - Rendered clips\n\n### Nested Sequences (Advanced Efficiency)\n- Create a master clip with all adjustments (scale, position, effects)\n- Use that nested sequence as a template for all 5 clips\n- Copy and modify for each new segment\n- Saves time on repetitive scaling and positioning\n\n---\n\n## Phase 8: Quick Workflow Checklist\n\n- [ ] Import 45-minute source, log markers at natural breaks\n- [ ] Create 5-6 new 9:16 sequences with appropriate names\n- [ ] Trim each segment to 60-90 seconds\n- [ ] Scale and reposition video to fill 9:16 frame (focus on instructor)\n- [ ] Add captions using Essential Graphics (pose names, cues)\n- [ ] Import background music track\n- [ ] Create volume keyframes to duck music under dialogue\n- [ ] Adjust audio levels (dialogue -6 to -12dB, music ducks to -18 to -20dB)\n- [ ] Review each clip for pacing, framing, and audio mix\n- [ ] Export all clips as H.264 MP4 (1080x1920, 30fps)\n- [ ] Upload to Instagram with captions/hashtags\n\n---\n\n## Pro Tips for Short-Form Yoga Content\n\n### Engagement Maximization\n1. **Variety**: Mix different pose types in your 5-6 clips (standing, balance, stretching, breathing)\n2. **Hook first**: Start with dynamic movement or clear pose name in captions\n3. **Breathing**: Include audible breathing cues\u2014very relatable and calming\n4. **Text frequency**: One major caption per 8-12 seconds keeps viewers engaged\n5. **Transitions**: Use subtle dissolves (1-2 frames) between different angles of the same pose\n\n### Audio Mixing for Yoga\n- Yoga requires a calm, clean audio mix\n- Avoid heavy background music; it competes with instruction\n- The instructor's voice should feel intimate and present\n- Soft ambient background music (strings, pads, lo-fi) works best\n- Music volume should never overshadow breathing or verbal cues\n\n### Performance Optimization\n- Use proxies if editing 4K on a slower machine (File > Proxy)\n- Set Premiere to reduce video resolution during playback\n- Ensure your cache is cleared periodically\n- Save project incrementally (e.g., \"yoga_v1,\" \"yoga_v2\")\n\n---\n\n## Summary\n\n**Total estimated time**: 4-6 hours (including export)\n- Setup & logging: 30 min\n- Clip creation & framing: 2-3 hours\n- Captions: 1-2 hours\n- Audio mixing: 45 min\n- Export: 30 min\u20131 hour (depending on hardware)\n\nThis workflow prioritizes efficiency by working with multiple sequences in parallel, using Premiere's built-in tools for scaling/positioning and audio mixing, and batch exporting to save time. The result will be 5-6 professional, vertical yoga clips optimized for Instagram Reels.\n\n---\n\n## Additional Resources\n\n- **Instagram Reels specifications**: Always 9:16 aspect ratio, max 90 seconds per clip\n- **Premiere Essential Graphics**: Best for quick text overlays on short-form content\n- **Audition integration**: For advanced audio editing if background music needs smoothing\n- **Media Encoder**: Batch processing essential for rendering multiple clips efficiently\n"}], "grading": null}, {"id": "eval-2-audio-cleanup-with_skill", "prompt": "The audio on my latest video has a lot of background AC noise and some echo from the room. It's a talking head video and the dialogue sounds muddy. How do I clean this up in Premiere? What order should I apply the fixes?", "eval_id": 2, "outputs": [{"name": "answer.md", "type": "text", "content": "# Audio Cleanup in Premiere Pro: Fixing AC Noise, Echo, and Muddy Dialogue\n\nYour talking-head video has three distinct problems that need to be fixed in a specific order. Fortunately, Premiere Pro has excellent tools for each issue, and the order matters because each fix builds on the last one.\n\n## The Three Problems You're Facing\n\n1. **AC (electrical) hum** \u2014 A consistent 50Hz or 60Hz buzz from power lines\n2. **Room echo/reverb** \u2014 The space is too reflective and adds a hollow quality to the dialogue\n3. **Muddy dialogue** \u2014 Loss of clarity and presence in the voice\n\n## The Correct Order to Apply Fixes\n\nHere's the professional approach, step by step:\n\n### Step 1: Low-Cut Filter (Remove Rumble)\nStart by removing low-frequency rumble that clouds the audio.\n\n1. Select your dialogue clip on the timeline\n2. Open the **Essential Sound panel** (Window > Essential Sound)\n3. Tag the clip as **Dialogue** (click the Dialogue type button)\n4. In the Repair section, look for **Low-Cut Filter** or use the Effects panel\n5. If using Effects panel: Drag **Audio Effects > Filter and EQ > Parametric Equalizer** onto the clip\n6. Set the high-pass filter to roll off everything below 80Hz\n\nThis removes handling noise, wind, and room rumble without affecting the voice.\n\n### Step 2: DeHum (Remove Electrical Hum)\nIf you have a noticeable 50Hz or 60Hz hum:\n\n1. In the Essential Sound panel under **Repair**, enable **DeHum**\n2. Select your region's standard:\n   - **60Hz** if you're in the Americas, Japan, or South Korea\n   - **50Hz** if you're in Europe, Asia, Australia, or Africa\n3. Listen to a 30-second section to verify the hum is gone\n4. Adjust if needed, but usually one click is enough\n\n### Step 3: Reduce Reverb (Remove Echo)\nNow tackle the room echo that's making the dialogue sound hollow:\n\n1. In the Essential Sound panel under **Repair**, enable **Reduce Reverb**\n2. Start at a setting of 4-5 on the slider\n3. Play through 30-60 seconds of dialogue and listen carefully\n4. If you still hear echo, gradually increase the slider (the room was pretty reflective)\n5. Be careful not to push it too high or the voice will sound unnatural \u2014 aim for that \"dry\" recording feel\n\n**Important**: Reduce Reverb works best on mild to moderate room echo. If your room was extremely echoey (like a gymnasium), you may need to combine this with the next step.\n\n### Step 4: Reduce Noise (Remove AC Hum and General Background Noise)\nThis removes the remaining steady-state noise:\n\n1. In the Essential Sound panel under **Repair**, enable **Reduce Noise**\n2. Start at a setting of 5-6 on the slider\n3. Play through several seconds of dialogue where the speaker is talking\n4. Gradually increase the slider if the background is still audible\n5. Stop when the noise is gone \u2014 if you push too hard, the voice will sound \"underwater\" or robotic\n6. For AC noise specifically, it should now be largely gone from steps 2 and 3 combined\n\n### Step 5: Enhance Speech (Optional but Powerful)\nIf the dialogue still sounds muddy or if background noise persists:\n\n1. In the Essential Sound panel under **Repair**, enable **Enhance Speech**\n2. This is an AI-powered tool that isolates the human voice from everything else (including residual noise)\n3. It's extraordinarily powerful for talking-head content\n4. Start at a moderate setting (around 50) and listen\n5. You can push this pretty far \u2014 it won't harm the voice quality much on dialogue\n\n**When to use**: If steps 1-4 haven't fully isolated the voice, Enhance Speech is your secret weapon. It can separate speech from music, noise, and room ambience simultaneously.\n\n### Step 6: DeEss (Optional - Remove Harsh Sibilance)\nIf the speaker has pronounced \"s\" and \"sh\" sounds that are too harsh:\n\n1. In the Essential Sound panel under **Repair**, enable **DeEss**\n2. Adjust the threshold and amount to taste\n3. Don't overdo it \u2014 too much DeEss makes speech sound lispy or unnatural\n\n### Step 7: EQ for Tone Shaping (Optional)\nIf the dialogue still sounds muddy after cleanup, use EQ to add presence:\n\n1. In the Effects panel, drag **Audio Effects > Filter and EQ > Parametric Equalizer** onto the clip\n2. Create a presence boost:\n   - **Find a peak around 2-5 kHz** \u2014 this is where human presence lives\n   - Boost this range by +3 to +6 dB to make the voice cut through\n3. Reduce harsh highs if needed:\n   - Around 8-10 kHz, reduce by -2 to -4 dB if the voice sounds sibilant or harsh\n4. Listen critically \u2014 a little EQ goes a long way\n\n### Step 8: Compression (Optional - Even Out Volume)\nIf the speaker's volume jumps around:\n\n1. In the Effects panel, drag **Audio Effects > Dynamics > Compressor** onto the clip\n2. Use these settings as a starting point:\n   - **Ratio**: 3:1 to 4:1 (dialogue range)\n   - **Threshold**: Set so the compressor engages on normal dialogue\n   - **Attack**: 10-30ms (let transients through naturally)\n   - **Release**: 100-200ms (smooth return to normal)\n3. Test with playback \u2014 you want transparency, not obvious squashing\n\n## Quick Reference: The Exact Workflow\n\nFor a typical talking-head video with AC noise and echo, follow this order:\n\n```\n1. Low-cut filter (80Hz high-pass)\n2. DeHum (60Hz or 50Hz)\n3. Reduce Reverb (start at 4-5)\n4. Reduce Noise (start at 5-6)\n5. Enhance Speech (if still muddy)\n6. DeEss (if sibilance is harsh)\n7. Parametric EQ for presence (optional)\n8. Compression (optional)\n```\n\n## Why This Order Matters\n\n- **High-pass filter first**: Clears low-frequency muck before you attack noise\n- **DeHum next**: Targets the specific electrical hum you're hearing\n- **Reduce Reverb before Reduce Noise**: Room echo gets in the way of noise reduction, so fix space first\n- **Enhance Speech last**: It's powerful and can fix what other tools miss, but it sounds best when the audio is already reasonably clean\n- **EQ and compression last**: These are for refinement and tone, not cleanup\n\n## Pro Tips for the Fastest Results\n\n1. **Use the Essential Sound panel exclusively for this task** \u2014 it's 10x faster than digging through the Effects menu\n2. **Test on a 30-60 second section first** before committing to settings\n3. **Reference your ears** \u2014 toggle each repair on and off to hear the difference\n4. **Don't over-process** \u2014 if you can't hear the problem anymore, you're done\n5. **For batch cleanup**: Apply the settings to one clip, then copy those effects (Cmd/Ctrl+C) and paste them (Cmd/Ctrl+V) onto all other dialogue clips in your project\n\n## When You're Done\n\nOnce your dialogue is clean:\n1. Check your loudness level (aim for -14 LUFS for YouTube/social, -16 LUFS for podcast)\n2. Use **Window > Audio Meters** to monitor during playback\n3. Add any background music or ambience at a lower level so it doesn't compete with dialogue\n4. Export with appropriate audio settings for your platform\n\nYour talking-head video should now have clear, present dialogue without the AC hum, echo, or muddiness!\n"}], "grading": null}, {"id": "eval-2-audio-cleanup-without_skill", "prompt": "The audio on my latest video has a lot of background AC noise and some echo from the room. It's a talking head video and the dialogue sounds muddy. How do I clean this up in Premiere? What order should I apply the fixes?", "eval_id": 2, "outputs": [{"name": "answer.md", "type": "text", "content": "# Audio Cleanup in Premiere Pro: Complete Guide for Dialogue Improvement\n\n## Your Specific Issues\nYou're dealing with three common audio problems:\n- **Background AC noise** (constant hum from air conditioning/electrical)\n- **Echo/room reverb** (reflections bouncing off hard surfaces)\n- **Muddy dialogue** (unclear, lacking clarity)\n\n---\n\n## Recommended Processing Order\n\nThe order you apply effects matters significantly. Follow this sequence for best results:\n\n### 1. **Denoise First** (Remove ambient background noise)\n**Why first:** This establishes a clean baseline by removing constant background hum and noise floor.\n\n**In Premiere Pro:**\n- Select your audio clip\n- Go to `Audio Clip Mixer` > right-click the track > `Audio Effects` > `Noise Reduction`\n- Or use: `Essential Sounds` panel (Window > Essential Sounds)\n  - Drag your clip into the panel\n  - Select \"Dialogue\" as the preset type\n  - Use the \"Denoise\" slider (start with 10-30%, adjust to taste)\n  - The Essential Sounds panel has a built-in denoise that captures a noise profile\n\n**AC Hum Specific Technique:**\n- If you have consistent 50/60 Hz hum, use the `Notch Filter` instead\n- Go to `Audio Effects` > `EQ` > Add `Notch EQ`\n- Set it to your power supply frequency (60 Hz in US, 50 Hz elsewhere)\n- Create a tight Q and reduce that specific frequency\n\n### 2. **Deverberate/Echo Reduction** (Remove room reflections)\n**Why second:** Once noise is reduced, tackle the echo. The denoise won't remove reverb well, so this needs its own pass.\n\n**In Premiere Pro:**\n- Use the `Essential Sounds` panel again\n- Apply the \"Reduce Reverb\" slider (start with 20-40%)\n- Alternatively, use `Audio Effects` > `Convolver` reverb reduction settings\n- Or use `DeEsser` + `Compressor` to tighten up the sound and reduce reflections\n\n**Manual Approach:**\n- Use a tight `Compressor` (4:1 ratio, fast attack) to glue the audio together\n- This helps mask room reflections and makes the dialogue sound more controlled\n- Set attack to 5-15 ms, release to 50-150 ms\n\n### 3. **EQ for Clarity** (Brighten muddy dialogue)\n**Why third:** Now that noise and echo are reduced, EQ brings out clarity without amplifying the problems you just fixed.\n\n**In Premiere Pro:**\n- Use `Audio Effects` > `Parametric EQ`\n- Apply these adjustments:\n  - **Reduce muddy frequencies:** Cut 2-4 dB around 200-400 Hz (this is where mud lives)\n  - **Boost clarity:** Add 4-6 dB around 2-4 kHz (presence peak for voice clarity)\n  - **Optional air:** Add 1-2 dB above 8 kHz if voice sounds dull\n  - Use gentle slopes (low Q values) for natural sounding EQ\n\n**Quick EQ Preset Approach:**\n- Use `Essential Sounds` > Switch to \"Repair\" mode\n- Adjust \"Reduce Harshness\" (pulls back harsh frequencies)\n- Adjust \"Enhance Speech\" to brighten dialogue\n\n### 4. **Gentle Compression** (Control dynamics, even out levels)\n**Why fourth:** After cleaning up problems, compression evens out the dialogue and makes it sound more polished.\n\n**In Premiere Pro:**\n- Use `Audio Effects` > `Compressor`\n- Settings for dialogue:\n  - Ratio: 4:1 to 6:1\n  - Threshold: Set so it engages on normal dialogue (not every syllable)\n  - Attack: 10-20 ms (let transients through)\n  - Release: 100-200 ms (smooth recovery)\n  - Makeup Gain: Auto-adjust as needed\n- This creates a cohesive, professional sound\n\n---\n\n## Step-by-Step Workflow\n\n```\n1. Import audio \u2192 Select clip\n2. Essential Sounds panel \u2192 Choose \"Dialogue\"\n3. Apply Denoise slider (adjust)\n4. Apply Reduce Reverb slider (adjust)\n5. Switch to Repair mode \u2192 Enhance Speech\n6. Add Parametric EQ (custom tweaks)\n7. Add Compressor (final polish)\n8. A/B compare original vs. processed\n9. Render/Export when satisfied\n```\n\n---\n\n## Critical Tips for Your Situation\n\n### For AC Noise:\n- Hum is repetitive, so denoise works well\n- If denoise isn't enough, layer in a Notch Filter at the exact frequency\n- Avoid over-processing\u2014aim for 80% noise reduction, not 100%\n\n### For Echo/Reverb:\n- Room echo is harder to remove than noise\n- Don't expect miracles if the room is very reflective\n- Reduce Reverb in Essential Sounds is your best Premiere tool\n- Consider re-recording in a better acoustic space (blankets, soft furnishings) for future videos\n\n### For Muddy Dialogue:\n- Muddiness usually comes from over-EQ'd lows or lack of presence in mids\n- Always use an EQ after denoise (never before)\n- Check your monitoring\u2014use headphones, not speakers\n- Make small adjustments (1-2 dB) and listen\n\n---\n\n## Settings by Audio Issue\n\n| Problem | Primary Tool | Secondary Tool | Setting |\n|---------|--------------|----------------|---------|\n| AC Hum | Notch Filter @ 60Hz | Denoise | Narrow Q, -6 to -12 dB |\n| Background Noise | Denoise | EQ High-Pass | 15-30% reduction |\n| Echo/Reverb | Reduce Reverb slider | Compressor | 20-40% reduction |\n| Muddy Voice | Parametric EQ | Denoise | Cut 200-400 Hz; Boost 2-4 kHz |\n| Low Clarity | Parametric EQ | Compressor | +4-6 dB @ 2-4 kHz |\n\n---\n\n## Avoid These Mistakes\n\n1. **Over-denoising**: Kills too many natural frequencies; dialogue sounds synthetic\n2. **EQing before denoising**: Boosts the noise you're trying to remove\n3. **Not A/B comparing**: Always compare processed to original to ensure you're improving\n4. **Using reverb reduction alone**: Doesn't work on muddy dialogue; you need EQ too\n5. **Forgetting to monitor**: Use good headphones, not tiny laptop speakers\n6. **Not saving your settings**: Save your effect presets as a template for future videos\n\n---\n\n## Bonus: Using the Essential Sounds Panel (Easiest Method)\n\nThe Essential Sounds panel is your fastest route:\n\n1. **Drag clip into Essential Sounds panel**\n2. **Select \"Dialogue\" category**\n3. **Use \"Repair\" tab:**\n   - Reduce Reverb slider \u2192 Start at 30%\n   - Enhance Speech slider \u2192 Start at 20%\n4. **Use \"Loudness\" tab:**\n   - Set to -20 to -18 LUFS (podcast standard)\n5. **Use \"Clarity\" tab:**\n   - Adjust to taste (subtle boost)\n6. **Compare before/after with play button**\n\n---\n\n## Expected Results\n\nWith proper application in this order, you should achieve:\n- **80-90% reduction** in ambient AC hum\n- **40-60% reduction** in room echo (depending on room)\n- **Clear, intelligible dialogue** with presence and warmth\n- **Professional sounding audio** suitable for YouTube/online video\n\n---\n\n## Final Checklist\n\n- [ ] Denoise applied (use Essential Sounds or Noise Reduction)\n- [ ] Reverb reduction applied\n- [ ] EQ boost in presence range (2-4 kHz)\n- [ ] EQ cut in muddy range (200-400 Hz)\n- [ ] Compression applied (gentle, 4:1 ratio)\n- [ ] A/B comparison done (original vs. processed)\n- [ ] Levels normalized/set to appropriate LUFS\n- [ ] Exported without further compression\n\nGood luck with your audio cleanup! The order matters more than the individual settings\u2014stick to denoise \u2192 reverb \u2192 EQ \u2192 compression for best results.\n"}], "grading": null}, {"id": "eval-3-speed-ramp-with_skill", "prompt": "I want to create a speed ramp in my video where a yoga pose transition goes from normal speed to dramatic slow motion and back. My footage is 60fps in a 30fps sequence. How do I set up time remapping with smooth transitions between the speed changes?", "eval_id": 3, "outputs": [{"name": "answer.md", "type": "text", "content": "# Creating a Speed Ramp in Adobe Premiere Pro: Yoga Pose Transition from Normal to Slow Motion\n\n## Overview\n\nYou're working with 60fps footage in a 30fps sequence, which gives you excellent slow-motion flexibility. A speed ramp\u2014where footage transitions smoothly from normal speed to slow motion and back\u2014is achieved using **Time Remapping** with keyframes in Premiere Pro. This is the professional approach for dynamic speed effects.\n\n---\n\n## Step-by-Step Setup\n\n### 1. **Prepare Your Sequence Settings**\n\nFirst, ensure your sequence is set to **30fps**. If you haven't already:\n- Your 60fps footage will naturally play at 2x slow motion if you simply extend it\n- But for a ramp effect, you'll want precise control\n\nCheck your sequence settings:\n- Open the sequence in the timeline\n- Right-click the sequence name in the Project panel > Sequence Settings\n- Confirm the frame rate is 29.97fps or 30fps (standard for your use case)\n\n### 2. **Enable Time Remapping on Your Clip**\n\nThis is the critical step. In the timeline:\n\n1. **Select the yoga pose transition clip** that you want to apply the speed ramp to\n2. **Right-click the clip** and look for: **Show Clip Keyframes > Time Remapping > Speed**\n\nThis reveals the **Time Remapping rubber band**\u2014a white line that runs horizontally across your clip in the timeline. This line represents playback speed at any point. Dragging it up = faster, dragging it down = slower.\n\n**Alternative method:**\n- Select the clip\n- Open **Effect Controls panel** (Window > Effect Controls)\n- Scroll down to **Time Remapping** and enable it by clicking the stopwatch icon\n- Choose the Time Remapping parameter you want: **Speed** is the easiest for ramps\n\n### 3. **Set Your Keyframes for the Speed Ramp**\n\nNow you'll create three keyframes to define your speed progression:\n\n**Keyframe 1 \u2014 Normal Speed (Start)**\n- Position the playhead at the **beginning** of your clip where you want normal speed to end\n- Click on the Time Remapping rubber band to add a keyframe\n- This keyframe should be at **100%** speed (normal playback)\n- In the Effect Controls panel, you can also manually set the Speed value\n\n**Keyframe 2 \u2014 Slowest Point (Middle)**\n- Position the playhead at the **peak moment** of the yoga transition where you want maximum dramatic slow-motion\n- Click the rubber band to add another keyframe\n- Drag this keyframe **down** to your desired slow-motion speed\n  - For 60fps footage in a 30fps sequence: 50% speed gives you 4x slow motion\n  - 75% speed gives you 1.33x slow motion\n  - Start with 50% and adjust to taste\n- Alternatively, in Effect Controls, set Speed to 50 (or whatever percentage you want)\n\n**Keyframe 3 \u2014 Return to Normal Speed (End)**\n- Position the playhead where you want to return to normal speed\n- Add another keyframe\n- Set this back to **100%** speed\n\n### 4. **Smooth Out the Transitions**\n\nThe keyframes you've placed will create speed changes, but they may be abrupt. To smooth them:\n\n1. **Right-click each keyframe** (the diamond icon on the rubber band or in Effect Controls)\n2. Select **Temporal Interpolation > Bezier**\n   - This creates a smooth curve of acceleration/deceleration rather than a sudden jump\n   - Much more cinematic than linear keyframes\n\n3. **Adjust keyframe curves if needed:**\n   - In Effect Controls, the keyframe icons become small curves\n   - Right-click and choose **Ease In** or **Ease Out** for even smoother motion\n   - For a dramatic ramp, **Ease Out** on the entrance to slow-motion and **Ease In** on the return to normal speed\n\n### 5. **Handle Frame Rate Interpolation**\n\nSince your source is 60fps in a 30fps sequence, Premiere has two options:\n\n**Option A: Keep Source Frames (Simpler)**\n- Simply slow down the 60fps footage and let Premiere drop/repeat frames\n- This works fine for moderate slow-motion (50-75% speed)\n- No additional processing needed\n\n**Option B: Optical Flow Interpolation (Smoother, More Processing)**\n- Right-click your clip in the timeline\n- Select **Time Interpolation > Optical Flow**\n- This generates in-between frames for silky-smooth slow motion at any speed\n- **Trade-off**: Takes longer to render, but looks significantly smoother\n- For a yoga transition to dramatic slow-motion, Optical Flow is worth the extra render time\n\n### 6. **Fine-Tune in Effect Controls**\n\nWith your clip selected, the Effect Controls panel shows the Time Remapping parameters:\n\n- **Speed**: The actual playback percentage at the current playhead position\n- The **mini-timeline** in Effect Controls shows your keyframes as diamonds\n- Click any keyframe in the mini-timeline to jump the playhead there and adjust\n\n**Adjusting on the fly:**\n- Drag the rubber band in the timeline up/down to change speed at any point\n- Hold Ctrl/Cmd while dragging to fine-tune without snapping\n- Toggle snapping with **S** if it's getting in the way\n\n---\n\n## Advanced Tips for Smooth Ramps\n\n### 1. **Add Handles to Your Clip**\nIf your clip is trimmed to the exact frame where you want to start the ramp, you'll have no room to ease in/out. Add a few extra frames:\n- Right-click clip > Trim to Fill\n- Or manually trim slightly looser if needed\n\n### 2. **Length of the Ramp**\n- A ramp that changes speed over **0.5\u20131 second** feels natural\n- A ramp over **2+ seconds** feels more gradual and cinematic\n- Experiment based on the yoga movement\n\n### 3. **Visual Reference**\n- Play it back at normal speed: **L** or spacebar\n- Use **J-K-L shuttle** playback to scrub through and see the speed changes before rendering\n- Enable playback of the Effect Controls mini-timeline to see exactly where keyframes are\n\n### 4. **Render for Preview**\n- Before final export, render the section with effects\n- Press **Enter** to render the timeline (or select the area and use **Ctrl/Cmd+Enter**)\n- This caches the speed ramp so playback is smooth\n- Otherwise, real-time playback may stutter\n\n### 5. **Non-Destructive Approach**\n- Time Remapping is already non-destructive (you can always undo or adjust keyframes)\n- If you want to try multiple versions, **nest the clip** (select it, right-click > Nest) to create a sub-sequence\n- Then apply the speed ramp to the nested sequence without touching the original\n\n---\n\n## Practical Example for Your Yoga Pose\n\nFor a yoga transition from normal to dramatic slow-motion:\n\n1. **0.0s\u20130.3s**: Normal speed (100%)\n2. **0.3s\u20131.0s**: Ramp down to 50% (smooth curve, Bezier interpolation)\n3. **1.0s\u20132.5s**: Hold at 50% (dramatic slow-motion at peak of transition)\n4. **2.5s\u20133.2s**: Ramp back up to 100% (smooth curve, Bezier interpolation)\n5. **3.2s+**: Return to normal playback\n\nThis gives you:\n- Quick entry into slow-mo (catches attention)\n- Extended moment of stillness (emphasizes the pose)\n- Smooth exit back to normal speed (resolves the effect)\n\n---\n\n## Troubleshooting\n\n### \"My speed ramp looks jerky\"\n- Make sure interpolation is set to **Bezier**, not Linear\n- Extend the keyframe duration (give the speed change more frames to happen)\n- Check Effect Controls to verify the keyframes are placed where you expect\n\n### \"Slow-motion looks choppy\"\n- Enable **Optical Flow** interpolation (right-click clip > Time Interpolation > Optical Flow)\n- Render the clip (press Enter) for smooth playback\n\n### \"I can't see the rubber band\"\n- Make sure the clip is selected\n- Right-click clip > Show Clip Keyframes > Time Remapping > Speed\n- Or in Effect Controls, click the disclosure arrow next to \"Time Remapping\"\n\n### \"Keyframes won't stay where I put them\"\n- Toggle snapping off with **S**\n- Hold **Ctrl/Cmd** while dragging keyframes for finer control\n\n---\n\n## Summary: The Quick Path\n\n1. **Select clip** in timeline\n2. **Right-click > Show Clip Keyframes > Time Remapping > Speed**\n3. **Click the rubber band** to add keyframes at: start (100%), middle (50%), end (100%)\n4. **Right-click each keyframe > Temporal Interpolation > Bezier** for smooth curves\n5. **Play (L key) and adjust** keyframe positions/speeds as needed\n6. **(Optional) Right-click clip > Time Interpolation > Optical Flow** for extra smoothness\n7. **Render (Enter)** before final export\n\nThis gives you a professional speed ramp that your yoga transition will thank you for. The combination of Bezier interpolation and Optical Flow creates that silky-smooth cinematic slow-motion effect.\n"}], "grading": null}, {"id": "eval-3-speed-ramp-without_skill", "prompt": "I want to create a speed ramp in my video where a yoga pose transition goes from normal speed to dramatic slow motion and back. My footage is 60fps in a 30fps sequence. How do I set up time remapping with smooth transitions between the speed changes?", "eval_id": 3, "outputs": [{"name": "answer.md", "type": "text", "content": "# Creating a Speed Ramp with Time Remapping in Adobe Premiere Pro\n\n## Overview\nYou want to create a dramatic slow-motion effect that eases smoothly from normal speed \u2192 slow motion \u2192 back to normal speed during a yoga pose transition. Since your footage is 60fps in a 30fps sequence, you have excellent frame rate headroom for smooth slow-motion effects.\n\n## Step-by-Step Setup\n\n### 1. Prepare Your Sequence and Footage\n- **Create a 30fps sequence** (your project frame rate)\n- **Import 60fps footage** - The higher frame rate ensures smooth slow-motion playback without stuttering\n- **Place your yoga transition clip** on the timeline\n- **Mark the in and out points** where you want the speed ramp to occur (e.g., a 3-5 second window)\n\n### 2. Enable Time Remapping\nTime remapping is the key to creating smooth variable speed changes. Here's how to set it up:\n\n1. **Select your clip** on the timeline\n2. **Right-click the clip** and select **Speed and Duration**\n3. In the Speed and Duration dialog, check the box for **Enable Time Remapping**\n4. Click **OK** - Notice that a new **Time Remap track** now appears above your video track in the Effect Controls panel\n\nAlternative method:\n- Go to **Clip menu** \u2192 **Retime** \u2192 **Time Remapping** \u2192 **Enable**\n\n### 3. Understand the Time Remap Graph\nOnce enabled, you'll see:\n- A **horizontal line** in the Time Remap effect graph (in the Effect Controls panel)\n- The line represents the speed curve from the clip's start to end\n- Flat line = normal speed (1x)\n- A line going upward steeply = fast motion\n- A line going upward gently = slow motion\n\n### 4. Create the Speed Ramp with Three Keyframes\n\n**Set your first keyframe (normal speed):**\n1. Position your playhead at the START of where you want the effect (e.g., 2 seconds into the clip)\n2. In the Time Remap graph, **click to add a keyframe** on the horizontal line\n3. This marks where normal speed begins\n\n**Set your second keyframe (slow motion start):**\n1. Move your playhead to where slow motion should BEGIN (e.g., 3 seconds in)\n2. Click on the Time Remap line to create another keyframe\n3. Now **drag this keyframe DOWNWARD** (or hold Shift and use arrow keys for precise control)\n4. The downward direction slows the footage - adjust until you reach your desired slow-motion speed (often 25-40% of normal speed for dramatic effect)\n\n**Set your third keyframe (slow motion peak):**\n1. Move playhead to the CENTER of your desired slow-motion section (e.g., 4 seconds in)\n2. Create a keyframe at your slowest speed\n3. This is your \"hold\" point for maximum slow-motion effect\n\n**Set your fourth keyframe (return to normal):**\n1. Move playhead to where slow motion should END (e.g., 5 seconds in)\n2. Create a keyframe and drag it back UP to normal speed level\n3. This creates the transition back to regular playback\n\n### 5. Fine-Tune with Bezier Curves (Optional but Recommended)\nFor truly smooth, professional-looking transitions:\n\n1. **Right-click on any keyframe** in the Time Remap graph\n2. Select **Bezier** (or your preferred interpolation type)\n3. **Bezier curves** create smooth acceleration/deceleration rather than abrupt speed changes\n4. Drag the **handle lines** that appear to adjust the curve smoothness\n   - Pull handles outward for gentler transitions\n   - Keep handles symmetrical for balanced speed changes\n\n### 6. Common Speed Ramp Values\n- **Normal speed**: Line at the 1.0x mark (horizontal)\n- **Half speed (0.5x)**: Line at 50% height\n- **Quarter speed (0.25x)**: Line at 25% height\n- **One-third speed (0.33x)**: Line at 33% height\n\nFor a yoga transition, a ramp to 0.3x-0.5x (30-50% normal speed) creates dramatic slow motion while maintaining smoothness.\n\n### 7. Practical Example Workflow\n\nAssuming your yoga transition clip is 6 seconds total:\n\n```\nTime    Keyframe Position    Speed\n0s      Start point          1.0x (normal)\n1s      Ease-in start        1.0x\n2s      Transition begins    0.5x (half speed)\n3s      Slowest point        0.3x (dramatic slow-mo)\n4s      Transition ends      0.5x\n5s      Ease-out complete    1.0x\n6s      End point            1.0x\n```\n\n### 8. Working with 60fps in a 30fps Sequence\n\n**Your advantage:**\n- 60fps footage provides 2x the frame data of your 30fps timeline\n- When slowed to 0.3x-0.5x speed, Premiere Pro interpolates between the 60fps frames\n- This creates incredibly smooth slow-motion with no jank or stuttering\n- You can safely slow to 0.2x without visible quality loss\n\n**Avoid:**\n- Slowing beyond 0.2x (80% slower) may show frame interpolation artifacts\n- Speeding up beyond 2x will show frame skipping\n- Always keep audio in sync (mute or use separate audio track)\n\n### 9. Playback Optimization\n\nSince time remapping is processor-intensive:\n\n1. **Lower preview quality** if playback stutters:\n   - Program monitor \u2192 quality selector (usually in bottom right)\n   - Select 1/2 or 1/4 resolution for smoother previews\n\n2. **Enable GPU acceleration** (if your system supports it):\n   - Premiere Pro settings \u2192 Playback\n   - Enable \"Use NVIDIA/AMD GPU if available\"\n\n3. **Create a low-res proxy** for the clip if editing becomes slow:\n   - Right-click clip \u2192 Proxy \u2192 Create Proxies\n\n### 10. Export Considerations\n\nWhen you're ready to export:\n\n1. **The time remap effect is baked into the output** - no additional settings needed\n2. **Match your export frame rate to sequence settings** (30fps)\n3. Your slow-motion sections will naturally take longer in the final output\n4. Audio will NOT be time-remapped by default (handle separately if needed)\n\n### 11. Advanced Tips\n\n**Ramp smoothness:**\n- Avoid sudden kinks in the time remap curve - they create speed pops\n- Use Bezier interpolation for all keyframes for buttery-smooth transitions\n- Longer ramps (spread over 2-3 seconds) look more professional than abrupt changes\n\n**Combining with other effects:**\n- Time remap works well with motion blur for added cinematic feel\n- Consider adding blur during slow-motion sections for depth\n- Apply Color Correction AFTER time remapping in the effect stack\n\n**Sync to music:**\n- If syncing to a beat, mark beats in the timeline (markers)\n- Plan your keyframes to hit on quarter/half-beat transitions\n- Use the waveform display to visualize audio beats\n\n## Troubleshooting\n\n**Problem: Speed changes look choppy**\n- Solution: Use Bezier interpolation instead of linear\n- Solution: Ensure your 60fps footage is being recognized correctly\n\n**Problem: Can't find Time Remap option**\n- Solution: Update Premiere Pro to latest version\n- Solution: Check that you're on a Video track (not adjustment layer)\n\n**Problem: Playback is very slow/stuttering**\n- Solution: Lower preview quality resolution\n- Solution: Create proxies for the clip\n- Solution: Reduce number of effects on the clip\n\n**Problem: Audio is out of sync after time remapping**\n- Solution: Unlink audio/video (right-click \u2192 Unlink)\n- Solution: Keep audio on its original speed or remove it during slow-mo sections\n- Solution: Manually adjust audio timing to match remap effect\n\n## Summary\n\nTo create your yoga speed ramp:\n1. Enable Time Remapping on your 60fps clip\n2. Create 4 keyframes: normal \u2192 easing \u2192 slow \u2192 normal\n3. Adjust keyframe positions downward for slow-motion effect\n4. Use Bezier curves for smooth transitions\n5. Aim for 0.3x-0.5x speed at the peak for dramatic effect\n6. Optimize playback with lower preview resolution if needed\n7. Export at 30fps to preserve all the smooth slow-motion frames\n\nYour 60fps source material will provide excellent interpolation for ultra-smooth slow-motion effects, creating a professional, cinematic speed ramp for your yoga transition.\n"}], "grading": null}], "previous_feedback": {}, "previous_outputs": {}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>
