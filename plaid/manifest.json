@@ -1,0 +1,30 @@
+{
+  "name": "plaid",
+  "display_name": "Plaid Financial Platform",
+  "version": "1.0.0",
+  "description": "Complete Plaid platform integration for Claude — includes navigation skills, API integration guidance, and an MCP server for direct Plaid API access. Supports all major Plaid products: Transactions, Auth, Balance, Identity, Investments, Liabilities, Transfer, Payment Initiation, Income, and Signal.",
+  "author": "ShoreStack Books",
+  "skills": [
+    {
+      "name": "plaid-platform",
+      "path": "skills/plaid-platform"
+    },
+    {
+      "name": "plaid-api",
+      "path": "skills/plaid-api"
+    }
+  ],
+  "mcps": [
+    {
+      "name": "plaid-mcp-server",
+      "path": "mcps/plaid-mcp-server",
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {
+        "PLAID_CLIENT_ID": "",
+        "PLAID_SECRET": "",
+        "PLAID_ENV": "sandbox"
+      }
+    }
+  ]
+}
