@@ -7,13 +7,15 @@
 
 This skill covers how to connect WhiskeySomm to the Cheersworthy Shopify store using the **Shopify Storefront API (GraphQL)**. This is a public-facing, unauthenticated API — no user login required. It is read-only and safe to call from a Next.js API route.
 
+WhiskeySomm is a sister app that drives traffic to Cheersworthy. It uses the Storefront API to pull product data for recommendations, then links users back to Cheersworthy product pages with UTM tracking.
+
 ---
 
 ## Store Details
 
 - **Store domain:** `cheersworthy.myshopify.com`
 - **Live domain (when launched):** `cheersworthy.com`
-- **Platform:** Shopify (standard product pages with custom metafields for flavor clouds)
+- **Platform:** Shopify (standard product pages with custom metafields)
 - **Access method:** Storefront API with public access token
 
 ---
@@ -38,7 +40,7 @@ Required API scopes:
 ## Base API Setup (`/lib/shopify.ts`)
 
 ```typescript
-const SHOPIFY_ENDPOINT = `https://${process.env.SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`
+const SHOPIFY_ENDPOINT = `https://${process.env.SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`
 
 export async function shopifyFetch(query: string, variables?: object) {
   const response = await fetch(SHOPIFY_ENDPOINT, {
@@ -93,9 +95,12 @@ query GetAllProducts {
           }
         }
         metafields(identifiers: [
-          { namespace: "custom", key: "flavor_cloud_image" },
-          { namespace: "custom", key: "flavor_profile" },
-          { namespace: "custom", key: "short_description" }
+          { namespace: "cheersworthy", key: "flavor_cloud_image" },
+          { namespace: "cheersworthy", key: "flavor_profile" },
+          { namespace: "cheersworthy", key: "short_description" },
+          { namespace: "cheersworthy", key: "tasting_notes" },
+          { namespace: "cheersworthy", key: "abv" },
+          { namespace: "cheersworthy", key: "origin" }
         ]) {
           key
           value
@@ -114,7 +119,7 @@ query GetAllProducts {
 }
 ```
 
-**Important:** The metafield namespace (`custom`) and keys (`flavor_cloud_image`, `flavor_profile`, `short_description`) are placeholders. Confirm the exact names in Cheersworthy's Shopify Admin → Products → any product → scroll to Metafields section. Update the query to match exactly.
+**Important:** The metafield keys (`flavor_cloud_image`, `flavor_profile`, `short_description`) are WhiskeySomm-specific additions to the standard Cheersworthy metafield set. Confirm the exact names in Cheersworthy's Shopify Admin → Products → any product → scroll to Metafields section. All metafields use the `cheersworthy` namespace for consistency across the entire ecosystem.
 
 ---
 
@@ -152,9 +157,9 @@ query GetProduct($handle: String!) {
       }
     }
     metafields(identifiers: [
-      { namespace: "custom", key: "flavor_cloud_image" },
-      { namespace: "custom", key: "flavor_profile" },
-      { namespace: "custom", key: "short_description" }
+      { namespace: "cheersworthy", key: "flavor_cloud_image" },
+      { namespace: "cheersworthy", key: "flavor_profile" },
+      { namespace: "cheersworthy", key: "short_description" }
     ]) {
       key
       value

@@ -10,8 +10,8 @@ Build and customize Shopify Online Store 2.0 themes with Liquid, sections, block
 ## Before You Start
 
 Read the shared store config for Cheersworthy-specific details:
-- `../../shared/cheersworthy-config.md` — Store identity, brand, compliance requirements
-- `../../shared/shopify-dev-patterns.md` — Common Shopify CLI commands and patterns
+- `references/cheersworthy-config.md` — Store identity, brand, compliance requirements
+- `references/shopify-dev-patterns.md` — Common Shopify CLI commands and patterns
 
 ## Cheersworthy Metafield Namespace Convention
 
@@ -77,7 +77,7 @@ Liquid is Shopify's templating language. Three building blocks:
 
 ### Section Schema
 
-Every section declares its settings via a `{% schema %}` block. This is how merchants configure sections in the theme editor:
+Every section declares its settings via a `{% schema %}` block. This is how merchants configure sections in the theme editor. For a complete reference of all available setting types, see `references/theme-settings-types.md`.
 
 ```liquid
 {% schema %}
@@ -213,6 +213,9 @@ For deeper dives, read the reference files in `references/`:
 - `references/liquid-cheatsheet.md` — Complete Liquid object/filter reference
 - `references/theme-settings-types.md` — All available schema setting types
 - `references/spirits-compliance.md` — Alcohol e-commerce legal requirements
+- `references/whiskeysomm-storefront-api.md` — WhiskeySomm sister app Storefront API integration
+- `references/cheersworthy-config.md` — Store identity, brand, and compliance context
+- `references/shopify-dev-patterns.md` — Common Shopify CLI commands and development patterns
 
 ## Development Workflow
 

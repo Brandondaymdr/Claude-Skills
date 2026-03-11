@@ -10,8 +10,8 @@ Build Sidekick app extensions that expose your app's data and actions to Shopify
 ## Before You Start
 
 Read the shared references for store and platform context:
-- `../../shared/cheersworthy-config.md` — Store identity and compliance context
-- `../../shared/shopify-dev-patterns.md` — Shopify CLI commands, extension architecture
+- `references/cheersworthy-config.md` — Store identity and compliance context
+- `references/shopify-dev-patterns.md` — Shopify CLI commands, extension architecture
 
 ## What Sidekick Extensions Do
 
@@ -230,8 +230,14 @@ function buildProductQuery(params) {
           title
           productType
           variants(first: 1) { edges { node { price } } }
-          metafields(first: 10, namespace: "cheersworthy") {
-            edges { node { key, value } }
+          metafields(identifiers: [
+            { namespace: "cheersworthy", key: "abv" },
+            { namespace: "cheersworthy", key: "tasting_notes" },
+            { namespace: "cheersworthy", key: "origin" },
+            { namespace: "cheersworthy", key: "age_statement" }
+          ]) {
+            key
+            value
           }
         }
       }
@@ -246,8 +252,17 @@ const PRODUCT_DETAIL_QUERY = `
       variants(first: 10) {
         edges { node { id title price inventoryQuantity } }
       }
-      metafields(first: 20, namespace: "cheersworthy") {
-        edges { node { key value type } }
+      metafields(identifiers: [
+        { namespace: "cheersworthy", key: "tasting_notes" },
+        { namespace: "cheersworthy", key: "abv" },
+        { namespace: "cheersworthy", key: "origin" },
+        { namespace: "cheersworthy", key: "distillery" },
+        { namespace: "cheersworthy", key: "age_statement" },
+        { namespace: "cheersworthy", key: "awards" },
+        { namespace: "cheersworthy", key: "pairing_notes" },
+        { namespace: "cheersworthy", key: "serving_suggestions" }
+      ]) {
+        key value type
       }
       images(first: 5) {
         edges { node { url altText } }
@@ -327,9 +342,11 @@ url = "/products/{id}/edit"
 
 [[extensions.targeting.intents]]
 type = "application/product"
-action = "open"
+action = "edit"
 schema = "./product-schema.json"
 ```
+
+Note: The `action` field supports `"open"` and `"edit"`. Use `"edit"` when the intent navigates to an editable view, `"open"` for read-only views.
 
 ### Step 4: Define Intent Schema
 
@@ -362,7 +379,7 @@ The real power comes from pairing data tools with action intents. When your data
 
 ## MCP Resource Links Format
 
-Sidekick is optimized for results in Model Context Protocol Resource Links format. Always return data in this structure from data source tools:
+Sidekick is optimized for results in Model Context Protocol Resource Links format. Always return data in this structure from data source tools. For the full specification and advanced patterns, see `references/mcp-resource-links.md`.
 
 ```javascript
 {
@@ -389,6 +406,7 @@ The 400ms response time limit is strict. Strategies:
 3. **Limit response size** — Return only essential fields, respect the 50-item limit
 4. **Use Direct API** — Faster than going through your backend for Shopify data
 5. **Parallelize** — If a tool needs multiple data sources, fetch concurrently
+6. **Use `metafields(identifiers: [...])` instead of `metafields(first: N)`** — Fetches only the specific metafields you need, avoiding unnecessary data transfer
 
 ## Common Mistakes to Avoid
 
@@ -411,7 +429,7 @@ All Cheersworthy spirit metafields use the `cheersworthy` namespace. Don't use `
 
 ## Current Status
 
-Sidekick app extensions are in **developer preview** (as of Winter '26 Edition). You need to submit interest through Shopify's form for early access. The API surface may change before GA.
+Sidekick app extensions are in **developer preview** (as of Winter '26 Edition). Shopify is working with partners in Q1 2026 to build out the ecosystem. You need to submit interest through Shopify's form for early access. The API surface may change before GA.
 
 ## Reference Files
 
@@ -419,3 +437,5 @@ For deeper dives, see `references/`:
 - `references/sidekick-api-reference.md` — Complete API reference with all schemas
 - `references/mcp-resource-links.md` — MCP format specification and examples
 - `references/cheersworthy-tools-examples.md` — Full example implementations for Cheersworthy
+- `references/cheersworthy-config.md` — Store identity, brand, and compliance context
+- `references/shopify-dev-patterns.md` — Common Shopify CLI commands and development patterns
