@@ -1,3 +1,8 @@
+---
+name: video
+description: Video editing skill using FFmpeg and Remotion for stitching clips, adding transitions, captions, subtitles, teasers, transcription, title cards, and graphics generation. Use this skill whenever the user mentions video editing, FFmpeg, Remotion, stitching video clips, adding captions or subtitles, creating teasers or trailers, transcribing audio with whisper.cpp, TikTok-style captions, video transitions, title cards, or any video post-production task. Also trigger when the user wants to combine clips, add text overlays, generate video content, or automate video workflows. Even if the user just says "edit this video" or "add captions," use this skill.
+---
+
 # Video Editing Skill
 
 > Video editing with FFmpeg and Remotion - stitching, transitions, captions, teasers, transcription, title cards, graphics generation

@@ -1,3 +1,8 @@
+---
+name: n8n
+description: Expert n8n workflow automation skill for building, testing, and deploying workflows via REST API with incremental testing. Use this skill whenever the user mentions n8n, workflow automation, n8n workflows, n8n API, building integrations with n8n, connecting apps with n8n, n8n nodes, n8n expressions, or any workflow automation task. Also trigger when the user wants to automate tasks between services, build webhook-driven workflows, or debug n8n workflow issues. Even if the user just says "automate this" or "connect these apps" and n8n is the tool of choice, use this skill.
+---
+
 # n8n Automation Skill
 
 > Complete n8n workflow automation via REST API with incremental testing

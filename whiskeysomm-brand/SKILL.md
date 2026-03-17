@@ -1,7 +1,10 @@
+---
+name: whiskeysomm-brand
+description: Brand identity, UX design system, voice, and product philosophy skill for WhiskeySomm — a mobile-first whiskey recommendation app. Use this skill whenever working on WhiskeySomm branding, UI/UX design, copywriting, design system decisions, component styling, product philosophy, user flows, or any creative direction for the WhiskeySomm app. Also trigger when the user mentions WhiskeySomm, whiskey app, whiskey recommendations, spirit recommendation UX, or wants to maintain brand consistency across WhiskeySomm features. Even if the user just says "WhiskeySomm" in any design or brand context, use this skill.
+---
+
 # WhiskeySomm — Brand & UX Skill
 ## Design System, Voice, and Product Philosophy
-
----
 
 ## What This App Is
 
