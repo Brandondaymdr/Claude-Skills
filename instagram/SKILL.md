@@ -1,20 +1,15 @@
 ---
 name: instagram
 description: >-
-  Comprehensive Instagram management and content strategy skill for running
-  Instagram Business accounts. Combines the Instagram Graph API (via MCP tools)
-  with deep yoga/wellness content strategy expertise. Use this skill whenever the
-  user mentions Instagram, wants to publish posts/reels/stories/carousels, check
-  analytics or insights, manage comments, research hashtags, monitor mentions, or
-  do anything related to Instagram account management. ALSO trigger when the user
-  asks for content ideas, posting advice, caption help, hashtag suggestions,
-  growth strategies, engagement tips, content calendar planning, or any Instagram
-  marketing/strategy guidance — even without mentioning specific tools. Also
-  trigger for "IG", "Insta", social media posting, content publishing, engagement
-  metrics, follower demographics, or social media management. Essential for
-  managing the carlagentileyoga and carlagentileday Instagram accounts. Even if
-  the user just says "what should Carla post?" or "how do we grow the yoga
-  account?" or "check engagement", use this skill.
+  Instagram management and content strategy skill for running Instagram Business
+  accounts via the Graph API. Use this skill whenever the user mentions Instagram,
+  publishing posts/reels/stories/carousels, analytics, comments, hashtags, or any
+  IG account management. Also trigger for content ideas, caption help, hashtag
+  suggestions, growth strategies, engagement tips, content calendars, or any
+  Instagram marketing guidance. Trigger for "IG", "Insta", social media posting,
+  engagement metrics, or follower demographics. Essential for managing
+  carlagentileyoga and carlagentileday accounts. Even if the user just says
+  "what should Carla post?" or "check engagement", use this skill.
 ---
 
 # Instagram Account Manager

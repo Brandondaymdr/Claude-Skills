@@ -1,0 +1,23 @@
+{
+  "skill_name": "obsidian-enrich",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My Obsidian notes for my apps are basically empty - just a one-liner and a file path. Can you pull the real context from my CLAUDE.md files into them? The vault is at Desktop/Storage/Obsidian/daysllc-obsidian and my project folders are in Desktop/Storage/Claude",
+      "expected_output": "Should discover CLAUDE.md files, map them to Obsidian notes, extract architecture/schemas/gotchas/status, and write enriched notes following the template. Should report what it found and what it enriched.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I've been working on shorestack-books for a few weeks and the Obsidian note is out of date. The CLAUDE.md has new stuff about the test suite and some gotchas we found. Can you update just that one note?",
+      "expected_output": "Should read the current Obsidian note, read the current CLAUDE.md, diff them, and merge new content (especially gotchas and test status) without losing existing content. Should ask before overwriting anything ambiguous.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I just created a new project called distillery-reports in my Claude folder. It has a CLAUDE.md but no Obsidian note yet. Add it to my vault with full context.",
+      "expected_output": "Should read the new project's CLAUDE.md, create a new Obsidian note following the enriched template, add it to the appropriate folder in the vault, and link it from the Projects hub. Should verify the note was created.",
+      "files": []
+    }
+  ]
+}
