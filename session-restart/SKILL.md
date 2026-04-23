@@ -62,8 +62,8 @@ git stash list
 # What changed in the last session? (look for closeout commits)
 git log --oneline --since="3 days ago"
 
-# Check for WIP commits
-git log --oneline --all --grep="wip" | head -5
+# Check for WIP commits (Conventional Commits format: wip(scope): ...)
+git log --oneline --all --grep="^wip(" --grep="^wip:" | head -5
 
 # Any remote changes to pull?
 git fetch --dry-run 2>&1
@@ -74,11 +74,11 @@ git fetch --dry-run 2>&1
 If the `session-closeout` skill was used, look for its traces:
 
 ```bash
-# Look for the most recent closeout commit
-git log --oneline --all --grep="closeout" | head -3
+# Look for the most recent closeout commit (Conventional Commits format: chore(closeout): ...)
+git log --oneline --all --grep="chore(closeout)" --grep="closeout" | head -3
 
 # Read the closeout commit's full message for session summary
-git log -1 --grep="closeout" --format="%B" 2>/dev/null
+git log -1 --grep="chore(closeout)" --grep="closeout" --format="%B" 2>/dev/null
 ```
 
 If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, next session priorities, and discovered issues. This is gold — use it as the primary briefing source.
@@ -87,7 +87,7 @@ If a closeout commit exists, it contains: what was completed, what's in progress
 
 ```bash
 # Are dependencies installed?
-[ -f "package.json" ] && [ ! -d "node_modules" ] && echo "WARN: node_modules missing — run npm install"
+[ -f "package.json" ] && [ ! -d "node_modules" ] && echo "WARN: node_modules missing — run pnpm install"
 [ -f "requirements.txt" ] && [ ! -d "venv" ] && [ ! -d ".venv" ] && echo "WARN: virtual env missing"
 
 # Do tests pass?
@@ -99,6 +99,63 @@ If a closeout commit exists, it contains: what was completed, what's in progress
 # Any lint errors?
 # (Run the lint command from CLAUDE.md)
 ```
+
+#### Check CI State
+
+Never resume work unaware of broken CI. A red build on `main` means `main` itself is broken — you need to know before you branch from it. A red build on your working branch means your last session pushed something that failed — you need to know before writing more code on top.
+
+```bash
+# Recent runs on main
+gh run list --branch main --limit 5
+
+# Status of current branch (if not main)
+CURRENT=$(git branch --show-current)
+if [ "$CURRENT" != "main" ]; then
+  gh run list --branch "$CURRENT" --limit 3
+
+  # If there's an open PR, check its CI state
+  gh pr checks "$CURRENT" 2>/dev/null
+fi
+
+# Any workflow failures in the last 24 hours on any branch?
+gh run list --status failure --limit 5 --created ">=1 day ago" 2>/dev/null
+```
+
+Surface any red builds prominently in the Phase 4 briefing. Don't bury CI failures in a health-check table — put them at the top of the session briefing with the failing workflow name, the commit that broke it, and a one-line recommendation (fix CI first, or acknowledge and work around).
+
+If CI is pending (workflow running), note it and move on — but flag it so the user checks before merging.
+
+#### Check Eval Drift (AI projects only)
+
+If the project has agent/prompt features with an `/evals/` directory, diff the two most recent eval runs to catch silent regressions. "Did I break Sandy last session?" is a question that should be answered before writing new code, not discovered after shipping.
+
+```bash
+if [ -d "evals/history" ] && [ "$(ls evals/history/*.json 2>/dev/null | wc -l)" -ge 2 ]; then
+  LATEST=$(ls -t evals/history/*.json | head -1)
+  PREVIOUS=$(ls -t evals/history/*.json | head -2 | tail -1)
+
+  echo "Latest eval run: $LATEST"
+  jq '{score, passed, total, failures: (.results // []) | map(select(.passed == false) | .id)}' "$LATEST"
+
+  echo "Previous eval run: $PREVIOUS"
+  jq '{score, passed, total}' "$PREVIOUS"
+
+  # Compute delta
+  LATEST_SCORE=$(jq -r '.score' "$LATEST")
+  PREVIOUS_SCORE=$(jq -r '.score' "$PREVIOUS")
+  DELTA=$(echo "$LATEST_SCORE - $PREVIOUS_SCORE" | bc -l)
+  echo "Score delta: $DELTA"
+
+  # Flag regressions
+  if (( $(echo "$DELTA < 0" | bc -l) )); then
+    echo "WARNING: eval regression detected — score dropped by $DELTA"
+  fi
+fi
+```
+
+If a regression is detected, surface it at the top of the briefing alongside any CI failures. List the specific eval cases that now fail (they were passing before) so the user can prioritize. An eval regression on money-touching code (Harper's gross-to-net) is a Tier 1 blocker — flag it as such.
+
+If no prior history exists (first run), note that and move on.
 
 #### Check for External Changes
 

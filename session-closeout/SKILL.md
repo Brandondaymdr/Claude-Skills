@@ -50,14 +50,16 @@ Produce a mental inventory:
 - Any blockers or decisions that need to be made next session?
 - Any bugs discovered but not fixed?
 
-### Phase 2: Commit Outstanding Work
+### Phase 2: Commit Outstanding Work + Audit Session Commits
 
 All work should be committed before closing. Uncommitted changes are the #1 cause of "what was I doing?" when restarting.
+
+**Step 2.1: Commit what's left**
 
 **If work is complete:**
 ```bash
 git add -A
-git commit -m "feat/fix/chore: [descriptive message]
+git commit -m "feat(scope): [descriptive message]
 
 [Brief context about what was done and why]"
 ```
@@ -66,7 +68,7 @@ git commit -m "feat/fix/chore: [descriptive message]
 ```bash
 # Commit what's stable
 git add [specific-files]
-git commit -m "wip: [what's in progress]
+git commit -m "wip(scope): [what's in progress]
 
 Status: [what works, what doesn't yet]
 Next steps: [what needs to happen to complete this]
@@ -80,6 +82,39 @@ git stash push -m "experiment: [description] - [date]"
 ```
 
 Never leave uncommitted changes. Period. Either commit, stash, or intentionally discard them.
+
+**Step 2.2: Conventional Commits audit (all session commits)**
+
+Before pushing, audit every commit made this session for Conventional Commits compliance. A single non-conforming commit will fail commitlint in CI and block the merge.
+
+```bash
+# Get all commits made since the branch diverged from main
+SESSION_COMMITS=$(git log --pretty=format:"%h %s" main..HEAD)
+echo "$SESSION_COMMITS"
+
+# Validate each subject against the Conventional Commits regex
+NON_CONFORMING=$(echo "$SESSION_COMMITS" | awk '{$1=""; sub(/^ /,""); print}' | \
+  grep -vE '^(feat|fix|docs|style|refactor|perf|test|chore|wip|build|ci|revert)(\([a-z0-9-]+\))?!?: .{1,}$' || true)
+
+if [ -n "$NON_CONFORMING" ]; then
+  echo "FOUND NON-CONFORMING COMMITS:"
+  echo "$NON_CONFORMING"
+else
+  echo "ALL COMMITS CONFORM"
+fi
+```
+
+If any commit doesn't conform, offer the user an interactive rebase to rewrite the messages:
+
+```bash
+COMMIT_COUNT=$(git rev-list --count main..HEAD)
+git rebase -i HEAD~$COMMIT_COUNT
+# In the editor, change 'pick' to 'reword' on each non-conforming commit
+```
+
+Walk the user through the rewrite — don't just `git rebase -i` and walk away. Suggest a conforming message for each non-conforming one based on the commit's diff. If the user prefers to squash, that's fine — but the final commit(s) must conform.
+
+**Never push non-conforming commits.** CI will reject them, and rewriting history after push is painful.
 
 ### Phase 3: Update CLAUDE.md
 
@@ -112,6 +147,81 @@ Beyond CLAUDE.md, update any project docs that are now stale:
 **.env.example** — If new environment variables were added, make sure they're listed here (without actual values).
 
 **TODO.md or project board** — If the project uses a TODO file or task tracker, update task status. Mark completed items, add new items discovered during the session.
+
+### Phase 4.5: ADR & CHANGELOG Check
+
+Before moving to config, scan the session for signs that an ADR or CHANGELOG entry should be written. This is the single highest-leverage habit in the developer transition plan — if closeout doesn't catch missing ADRs, they never get written.
+
+**Detect architectural decisions made this session:**
+
+```bash
+# New dependencies added
+git diff main..HEAD -- package.json | grep -E '^\+.*"[^"]+":\s*"[^"]+"' | grep -v devDependencies
+
+# New top-level directories created
+git diff --name-status main..HEAD | awk '$1=="A" {print $2}' | awk -F/ '{print $1}' | sort -u
+
+# New service integrations (look for new env vars, new config files)
+git diff main..HEAD -- .env.example
+ls -la "$(git rev-parse --show-toplevel)"/*.config.* 2>/dev/null
+```
+
+If any of these found something substantive, prompt the user:
+
+> "This session appears to have made architectural decisions:
+> - Added dependency: `<package>`
+> - New directory: `<dir>`
+> - New integration: `<service>`
+>
+> Should we write an ADR before closing out? Y/n"
+
+If yes:
+1. Scaffold `docs/decisions/NNNN-kebab-slug.md` using the template (next number in sequence, zero-padded to 4 digits).
+2. Help the user fill in Context / Decision / Consequences.
+3. Add the ADR to `docs/decisions/DECISIONS.md` index with its title, status, and date.
+4. Commit as `docs(decisions): add ADR NNNN <slug>`.
+
+If the user declines, record the missed decision in the closeout commit body under `## Decisions not documented:` so it's visible on restart.
+
+**Detect user-facing changes:**
+
+```bash
+# Changes in user-facing code paths
+git diff --name-only main..HEAD | grep -E '^(src/(app|pages|components|api)/|README\.md)' | head -20
+```
+
+If any, prompt:
+
+> "This session appears to have user-facing changes. Should we update `CHANGELOG.md` `## [Unreleased]`?
+> Suggested entries based on your commits:
+> - `<commit subject → CHANGELOG line>`
+> - `<commit subject → CHANGELOG line>`"
+
+CHANGELOG format (Keep a Changelog):
+
+```markdown
+## [Unreleased]
+
+### Added
+- New feature description
+
+### Changed
+- Behavior change description
+
+### Fixed
+- Bug fix description
+
+### Removed
+- Removed feature description
+```
+
+Categorize commits by Conventional Commits type:
+- `feat:` → Added
+- `fix:` → Fixed
+- `refactor:`/`perf:` → Changed (if user-observable)
+- Breaking changes (`!` or `BREAKING CHANGE:` footer) → flag prominently
+
+If the user declines, again record this as a skipped item in the closeout commit so restart surfaces it.
 
 ### Phase 5: Update .claude/ Configuration
 
@@ -146,11 +256,11 @@ Don't be overly aggressive — some TODOs and console.logs are intentional. But 
 
 ### Phase 7: Session Summary & Handoff
 
-Create a final commit that captures the closeout updates:
+Create a final commit that captures the closeout updates (`chore(scope):` prefix mandatory — even the closeout commit conforms):
 
 ```bash
 git add -A
-git commit -m "chore: session closeout — update docs and project state
+git commit -m "chore(closeout): session closeout — update docs and project state
 
 Summary of this session:
 - [What was accomplished]
@@ -163,7 +273,32 @@ Next session should:
 - [Priority 3]"
 ```
 
-Then present a summary to the user:
+**Then gather the operational metrics before presenting the summary:**
+
+```bash
+# Eval drift (AI projects only)
+if [ -d "evals/history" ]; then
+  LATEST=$(ls -t evals/history/*.json | head -1)
+  PREVIOUS=$(ls -t evals/history/*.json | head -2 | tail -1)
+  LATEST_SCORE=$(jq -r '.score' "$LATEST" 2>/dev/null || echo "?")
+  PREVIOUS_SCORE=$(jq -r '.score' "$PREVIOUS" 2>/dev/null || echo "?")
+  LATEST_PASSED=$(jq -r '.passed' "$LATEST" 2>/dev/null || echo "?")
+  LATEST_TOTAL=$(jq -r '.total' "$LATEST" 2>/dev/null || echo "?")
+fi
+
+# CI status of last run on current branch
+CI_STATUS=$(gh run list --branch "$(git branch --show-current)" --limit 1 --json status,conclusion -q '.[0].conclusion' 2>/dev/null)
+
+# Open (Proposed) ADRs
+OPEN_ADRS=$(grep -l '^Status: Proposed' docs/decisions/*.md 2>/dev/null | wc -l | tr -d ' ')
+
+# CHANGELOG Unreleased entries
+if [ -f "CHANGELOG.md" ]; then
+  UNRELEASED_LINES=$(awk '/^## \[Unreleased\]/,/^## \[/' CHANGELOG.md | grep -cE '^- ')
+fi
+```
+
+**Present the summary to the user:**
 
 **Session Closeout Summary**
 
@@ -172,7 +307,17 @@ Then present a summary to the user:
 3. **Updated documentation:** [which docs were updated]
 4. **Discovered issues:** [bugs found, gotchas, tech debt]
 5. **Recommended next steps:** [prioritized list for next session]
-6. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing?]
+6. **Operational metrics:**
+   - **Eval pass rate:** `$LATEST_PASSED/$LATEST_TOTAL` (delta vs previous: `$LATEST_SCORE - $PREVIOUS_SCORE`) — flag prominently if regression.
+   - **CI status:** `$CI_STATUS` on branch `<branch>`. If red or pending, tell the user: "Don't merge until green."
+   - **Open ADRs:** `$OPEN_ADRS` in Proposed status — list them.
+   - **CHANGELOG Unreleased entries:** `$UNRELEASED_LINES` — if 0 and this session touched user-facing code, flag as missed.
+   - **Conventional Commits compliance:** [result from Phase 2.2 audit]
+7. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing?]
+
+**If the user is about to merge a PR from this branch:** remind them of the 10-minute cool-down (per `DEFAULTS-ADR-0001`). The CI `pr-age-check` job will block merge for PRs under 10 minutes old, but the habit is to close Claude, get water, come back, and re-read the diff. Don't merge in the same minute you push.
+
+**If the user has uncommitted work they chose not to commit or stash:** do not let closeout finish silently. Either they confirm "discard" or they commit/stash. The closeout skill does not end a session with a dirty working tree.
 
 ## Cowork Mode Adaptations
 
