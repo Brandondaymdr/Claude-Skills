@@ -138,6 +138,91 @@ done
 - Are there stale docs that describe removed features?
 - Are there undocumented features that should have docs?
 
+**ADR (Architecture Decision Record) audit:**
+
+```bash
+# Does docs/decisions/ exist?
+[ -d "docs/decisions" ] && echo "EXISTS" || echo "MISSING"
+
+# How many ADRs?
+ls docs/decisions/*.md 2>/dev/null | grep -vE 'template|DECISIONS|README' | wc -l
+
+# How old is the project?
+PROJECT_AGE_DAYS=$(( ($(date +%s) - $(git log --reverse --format=%ct | head -1)) / 86400 ))
+
+# Is there a DECISIONS.md index?
+[ -f "docs/decisions/DECISIONS.md" ] && echo "INDEX EXISTS" || echo "INDEX MISSING"
+
+# Every major (non-dev) dependency should have a corresponding ADR
+if [ -f "package.json" ]; then
+  jq -r '.dependencies | keys[]' package.json 2>/dev/null | while read dep; do
+    grep -riq "$dep" docs/decisions/ 2>/dev/null || echo "MISSING ADR FOR DEP: $dep"
+  done
+fi
+```
+
+| Finding | Severity | Description |
+|---|---|---|
+| `docs/decisions/` missing on Tier 1 project | High | Architectural decisions never documented |
+| `docs/decisions/` missing on project >30 days old | Medium | Should have had at least one decision by now |
+| `DECISIONS.md` index missing | Medium | ADR discoverability problem |
+| Major dependency without corresponding ADR | Medium | Decision not justified on record |
+| ADRs exist but none reference current dependencies | High | ADRs are stale vs. code reality |
+
+**CHANGELOG audit:**
+
+```bash
+# Does CHANGELOG.md exist?
+[ -f "CHANGELOG.md" ] && echo "EXISTS" || echo "MISSING"
+
+# When was it last touched?
+LAST_CHANGELOG_COMMIT=$(git log -1 --format=%ct CHANGELOG.md 2>/dev/null)
+DAYS_SINCE=$(( ($(date +%s) - LAST_CHANGELOG_COMMIT) / 86400 ))
+echo "CHANGELOG last updated $DAYS_SINCE days ago"
+
+# Does it have an [Unreleased] section?
+grep -q '^## \[Unreleased\]' CHANGELOG.md && echo "UNRELEASED SECTION PRESENT" || echo "NO UNRELEASED SECTION"
+
+# How many entries are in Unreleased?
+awk '/^## \[Unreleased\]/,/^## \[/' CHANGELOG.md | grep -cE '^- '
+```
+
+| Finding | Severity | Description |
+|---|---|---|
+| `CHANGELOG.md` missing on Tier 1/2 project | Medium | No user-facing change record |
+| CHANGELOG last updated >60 days ago for actively-developed project | Medium | Drift between code and docs |
+| No `[Unreleased]` section | Low | Release process will be awkward |
+| Unreleased section is empty but recent user-facing commits exist | High | Closeout habit broken — CHANGELOG not being maintained |
+
+**CONTRIBUTING audit:**
+
+```bash
+# Does CONTRIBUTING.md exist?
+[ -f "CONTRIBUTING.md" ] && echo "EXISTS" || echo "MISSING"
+
+# Does it document commit format?
+grep -iq 'conventional commits' CONTRIBUTING.md && echo "COMMIT FORMAT DOCUMENTED" || echo "COMMIT FORMAT NOT DOCUMENTED"
+
+# Does it document PR workflow?
+grep -iq 'pull request\|pr workflow\|branch' CONTRIBUTING.md && echo "PR WORKFLOW DOCUMENTED" || echo "PR WORKFLOW NOT DOCUMENTED"
+```
+
+| Finding | Severity | Description |
+|---|---|---|
+| `CONTRIBUTING.md` missing | Medium | Solo workflow not documented for future you |
+| Commit format not documented | Medium | Developers won't know the conventional-commits requirement |
+| PR/branching workflow not documented | Medium | "Why can't I push to main?" surprise |
+
+**docs/WORKFLOW.md (golden path) audit:**
+
+```bash
+[ -f "docs/WORKFLOW.md" ] && echo "EXISTS" || echo "MISSING"
+```
+
+| Finding | Severity | Description |
+|---|---|---|
+| `docs/WORKFLOW.md` missing on Tier 1/2 project | Low | Golden-path doc not in place; minor — README often duplicates |
+
 ### Phase 3: Claude Configuration Audit
 
 Evaluate the `.claude/` directory for completeness and effectiveness.
@@ -183,25 +268,34 @@ Evaluate the project's development infrastructure.
 ```bash
 # Check test infrastructure
 [ -d "tests" ] || [ -d "__tests__" ] || [ -d "test" ] && echo "Test directory exists"
-find . -name "*.test.*" -o -name "*.spec.*" | wc -l  # Count test files
+TEST_FILE_COUNT=$(find . -name "*.test.*" -o -name "*.spec.*" 2>/dev/null | grep -v node_modules | wc -l)
+echo "Test files: $TEST_FILE_COUNT"
 
-# Run tests if possible
-npm run test 2>&1 | tail -20  # or pytest, etc.
+# Source-to-test ratio (Tier 1 should be >0.3)
+SOURCE_FILE_COUNT=$(find src -name "*.ts" -o -name "*.tsx" -o -name "*.js" 2>/dev/null | grep -vE 'test|spec' | wc -l)
+[ "$SOURCE_FILE_COUNT" -gt 0 ] && echo "Test/Source ratio: $(echo "scale=2; $TEST_FILE_COUNT / $SOURCE_FILE_COUNT" | bc)"
+
+# Run tests with coverage
+pnpm test -- --coverage 2>&1 | tail -30 || npm run test -- --coverage 2>&1 | tail -30
+
+# Extract coverage percentage (Vitest/Istanbul format)
+COVERAGE_PCT=$(pnpm test -- --coverage --reporter=json 2>/dev/null | jq -r '.coverageMap | ... ' 2>/dev/null || echo "UNKNOWN")
+echo "Coverage: $COVERAGE_PCT"
 
 # Check linting
-npm run lint 2>&1 | tail -20  # or ruff, etc.
+pnpm lint 2>&1 | tail -20
 
 # Check types
-npx tsc --noEmit 2>&1 | tail -20  # or mypy, etc.
+pnpm typecheck 2>&1 | tail -20 || pnpm exec tsc --noEmit 2>&1 | tail -20
 
 # Check build
-npm run build 2>&1 | tail -20
+pnpm build 2>&1 | tail -20
 
 # Check dependencies
-npm outdated 2>/dev/null | head -20  # or pip list --outdated
+pnpm outdated 2>/dev/null | head -20
 
 # Check for security vulnerabilities
-npm audit 2>/dev/null | tail -10
+pnpm audit 2>/dev/null | tail -10
 
 # Check for large files that shouldn't be committed
 find . -size +5M -not -path "./.git/*" -not -path "./node_modules/*" | head -10
@@ -209,6 +303,21 @@ find . -size +5M -not -path "./.git/*" -not -path "./node_modules/*" | head -10
 # Check .env hygiene
 [ -f ".env.example" ] && echo ".env.example exists" || echo "MISSING .env.example"
 grep -rn "sk-\|password=\|secret=" . --include="*.ts" --include="*.js" --include="*.py" --include="*.env" -l 2>/dev/null | grep -v node_modules | grep -v ".env.example"
+
+# Evals presence (for AI-featured projects)
+IS_AI_PROJECT="false"  # Determined from CLAUDE.md, package.json (openai/anthropic deps), or explicit metadata
+grep -qiE '"(@anthropic-ai/sdk|openai|langchain|ai)"' package.json 2>/dev/null && IS_AI_PROJECT="true"
+
+if [ "$IS_AI_PROJECT" = "true" ]; then
+  [ -d "evals" ] && echo "EVALS DIR EXISTS" || echo "MISSING EVALS DIR (AI project)"
+  DATASET_COUNT=$(find evals/datasets -name "*.jsonl" -o -name "*.json" 2>/dev/null | wc -l)
+  echo "Eval datasets: $DATASET_COUNT"
+  HISTORY_COUNT=$(ls evals/history/*.json 2>/dev/null | wc -l)
+  echo "Eval history entries: $HISTORY_COUNT"
+fi
+
+# gitleaks scan (in addition to grep-based secret check)
+gitleaks detect --no-git --verbose 2>&1 | tail -10 || echo "gitleaks not installed — recommend adding"
 ```
 
 **Evaluation criteria:**
@@ -226,6 +335,13 @@ grep -rn "sk-\|password=\|secret=" . --include="*.ts" --include="*.js" --include
 | Secrets in code | Critical | Exposed credentials |
 | Missing .env.example | Medium | Teammates can't set up environment |
 | Large binary files committed | Medium | Repository bloat |
+| Test coverage <50% on Tier 1 project | High | Money-touching code not sufficiently verified |
+| Test/source file ratio <0.3 on Tier 1 project | Medium | Likely under-tested, not a hard cutoff |
+| `/evals/` missing on AI-featured project | High | No way to catch agent regressions |
+| `/evals/datasets/` empty on AI-featured project | High | Eval scaffolding exists but is unused |
+| `/evals/history/` empty on AI-featured project | Medium | Evals have never been run and committed |
+| gitleaks not installed / not in CI | High | Secret leak risk not mitigated |
+| gitleaks finds matches | Critical | Potential credential exposure — investigate immediately |
 
 ### Phase 5: Git Health Audit
 
@@ -250,6 +366,36 @@ git log --oneline --diff-filter=A --numstat | awk '{if ($1 > 500) print}' | head
 # Check .gitignore coverage
 git status --porcelain | head -20
 [ -f ".gitignore" ] && echo ".gitignore exists" || echo "MISSING .gitignore"
+
+# Conventional Commits compliance (last 50 commits)
+CC_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|wip|build|ci|revert)(\([a-z0-9-]+\))?!?: .{1,}$'
+TOTAL_50=$(git log --format=%s -50 | wc -l | tr -d ' ')
+CONFORMING_50=$(git log --format=%s -50 | grep -cE "$CC_REGEX")
+echo "Conventional Commits compliance (last 50): $CONFORMING_50 / $TOTAL_50"
+CC_PCT=$(( (CONFORMING_50 * 100) / (TOTAL_50 > 0 ? TOTAL_50 : 1) ))
+echo "Compliance percentage: ${CC_PCT}%"
+
+# CI status of last 10 commits on main
+gh run list --branch main --limit 10 --json conclusion,headSha,createdAt -q '.[] | "\(.createdAt) \(.conclusion) \(.headSha[:7])"' 2>/dev/null
+
+# Branch protection status on main
+gh api repos/:owner/:repo/branches/main/protection 2>/dev/null | jq -r '{
+  requires_pr: .required_pull_request_reviews != null,
+  requires_ci: .required_status_checks != null,
+  enforces_admins: .enforce_admins.enabled,
+  required_checks: (.required_status_checks.contexts // [])
+}' || echo "NO BRANCH PROTECTION on main"
+
+# Direct-to-main commits in last 30 days (should be 0 under the workflow)
+DIRECT_COMMITS=$(git log --first-parent main --no-merges --since="30 days ago" --format=%H | while read sha; do
+  # A commit is "direct" if it has no parent merge commit linking it to a PR
+  PARENT_IS_MERGE=$(git log -1 --format=%P "$sha" | awk '{print NF}')
+  [ "$PARENT_IS_MERGE" = "1" ] && echo "$sha"
+done | wc -l | tr -d ' ')
+echo "Direct-to-main commits (last 30d): $DIRECT_COMMITS"
+
+# gitleaks scan of full history (catches secrets committed previously)
+gitleaks detect --verbose --redact 2>&1 | tail -15 || echo "gitleaks not installed — install for history scan"
 ```
 
 **Evaluation criteria:**
@@ -262,6 +408,14 @@ git status --porcelain | head -20
 | Poor commit messages | Medium | Can't understand project history |
 | Uncommitted changes | Medium | Work at risk of being lost |
 | Secrets in git history | Critical | Even if removed from HEAD, they're in history |
+| Conventional Commits compliance <90% (last 50) | High | Commit discipline broken — commitlint likely not installed |
+| Conventional Commits compliance <50% | Critical | No commit discipline at all — CHANGELOG, restart briefings, etc. all degraded |
+| CI red on last commit to main | Critical | main is broken — no one should branch from it until fixed |
+| CI red on more than 2 of last 10 main commits | High | CI is flaky or discipline is slipping |
+| Branch protection not enabled on main | High | Nothing stopping direct-to-main commits |
+| Branch protection does not require PR | High | Workflow rule "no direct commits to main" is unenforced |
+| Branch protection does not require status checks | High | CI can be bypassed |
+| Direct-to-main commits in last 30 days | High (Tier 1) / Medium (Tier 2) | Workflow discipline broken |
 
 ## Producing the Audit Report
 
@@ -304,23 +458,40 @@ Auditor: Claude (session-forensic-audit)
 [Prioritized action plan — what to fix first, what can wait]
 
 ## Health Scorecard
-| Domain | Score | Notes |
-|---|---|---|
-| Folder Structure | [A-F] | [One-line summary] |
-| Documentation | [A-F] | [One-line summary] |
-| Claude Config | [A-F] | [One-line summary] |
-| Code Health | [A-F] | [One-line summary] |
-| Git Hygiene | [A-F] | [One-line summary] |
-| **Overall** | **[A-F]** | |
+| Domain | Weight | Score (0-max) | Notes |
+|---|---|---|---|
+| Folder Structure | 10 | [0-10] | [One-line summary] |
+| Documentation | 15 | [0-15] | [One-line summary] |
+| Claude Config | 10 | [0-10] | [One-line summary] |
+| Code Health (general) | 15 | [0-15] | [One-line summary] |
+| Testing Maturity | 20 | [0-20] | Coverage %, test/source ratio, regression test habit |
+| Eval Coverage (AI projects) | 15 | [0-15] / N/A | Dataset size, history depth, threshold set |
+| Commit Hygiene | 10 | [0-10] | Conventional Commits %, CI status, branch protection |
+| Decision Documentation | 10 | [0-10] | ADR count, DECISIONS.md index, dependency ADRs |
+| Git Hygiene (other) | 5 | [0-5] | Branch cleanup, stash hygiene, .gitignore |
+| **Overall** | **100** | **[0-100]** | (Non-AI projects: renormalize to 85) |
 ```
 
 ### Scoring Guide
 
-- **A**: Exemplary — follows best practices, minimal improvements possible
-- **B**: Good — solid foundation with minor improvements available
-- **C**: Adequate — functional but missing key best practices
-- **D**: Below standard — significant gaps that impact development quality
-- **F**: Critical — fundamental issues that need immediate attention
+**Numeric scores are the source of truth.** Convert to a letter grade for quick scanning:
+
+- **A (90-100):** Exemplary — follows best practices, minimal improvements possible
+- **B (75-89):** Good — solid foundation with minor improvements available
+- **C (60-74):** Adequate — functional but missing key best practices
+- **D (40-59):** Below standard — significant gaps that impact development quality
+- **F (<40):** Critical — fundamental issues that need immediate attention
+
+**Per-dimension scoring hints:**
+
+- **Testing Maturity (0-20):** 0 = no tests. 5 = smoke tests exist. 10 = unit tests for critical paths. 15 = coverage >50% and test/source ratio >0.3. 20 = coverage >75%, regression test habit observable (bug-fix commits always include test).
+- **Eval Coverage (0-15):** 0 = no `/evals/`. 5 = scaffolded but empty. 10 = ≥20 dataset cases + threshold set. 15 = history of runs committed, evals wired into CI, regressions caught before merge.
+- **Commit Hygiene (0-10):** 0 = <50% Conventional Commits compliance. 5 = ~75%. 8 = >90% + branch protection enabled. 10 = >95% + branch protection + CI required checks + direct-to-main count is 0.
+- **Decision Documentation (0-10):** 0 = no `docs/decisions/`. 3 = directory exists but no ADRs. 6 = ≥3 ADRs + DECISIONS.md index. 10 = every major dependency and architectural choice has an ADR; ADRs referenced by recent commits.
+
+**Tier 2 projects** should be graded more leniently on Eval Coverage, Testing Maturity, and Decision Documentation — they target lighter coverage by design. A B grade on a Tier 2 project for these dimensions is fine.
+
+**Tier 3 projects** should not be audited with this scorecard at all — they're minimal by design. Audit Tier 3 only for a single check: does `STATUS.md` exist?
 
 ## Auto-Fix Mode
 
