@@ -30,7 +30,7 @@ The full `session-closeout` skill is a 7-phase SOP for ending a session. This is
 
 Three steps. Should take under 60 seconds.
 
-### Step 1: Commit Current State
+### Step 1: Commit Current State (Conventional Commits enforced)
 
 ```bash
 # Check what's changed
@@ -38,22 +38,41 @@ git status
 git diff --stat
 ```
 
-Commit everything, even if it's incomplete:
+The checkpoint commit **must** follow Conventional Commits format — every commit does, no exceptions, per the project's non-negotiable rules. Legacy `checkpoint: ...` messages are no longer valid. Use `wip(scope):` for work-in-progress or `chore(scope):` for tooling/maintenance checkpoints.
+
+**Pre-commit verification:** before running `git commit`, check the user's intended message against the Conventional Commits regex:
+
+```
+^(feat|fix|docs|style|refactor|perf|test|chore|wip|build|ci|revert)(\([a-z0-9-]+\))?!?: .{1,}$
+```
+
+If the message doesn't match, auto-rewrite it. Apply these rules:
+
+| User intent | Auto-rewrite to |
+|---|---|
+| `checkpoint: <thing>` | `wip(<best-guess-scope>): <thing>` |
+| `checkpoint` (no message) | Block — require a description |
+| `saving progress` / `wip` / `stuff` | Block — require a real description |
+| Already conforming | Use as-is |
+
+Scope is inferred from the changed files: if edits are in `src/auth/**`, scope is `auth`. If changes span multiple areas, use `multi` or omit the scope. Never guess wildly — when in doubt, ask the user for the scope in one line.
+
+Commit everything, even if it's incomplete. The message body stays the same 3-4 line breadcrumb format:
 
 ```bash
 git add -A
-git commit -m "checkpoint: [what you're working on]
+git commit -m "wip(<scope>): <what you're working on>
 
 State: [what works / what's in progress]
 Context: [key decisions made, approaches tried]
 Next: [what you were about to do next]"
 ```
 
-The commit message is the breadcrumb. Future you (or the restart skill) will read it to recover context. Make it count — 3-4 lines that capture the *why* and *where*, not just the *what*.
+The commit message is the breadcrumb. Future you (or the restart skill) will read it to recover context. Make it count — 3-4 body lines that capture the *why* and *where*, not just the *what*. The `wip(scope):` prefix is what makes it discoverable and CI-compliant.
 
 **Good checkpoint messages:**
 ```
-checkpoint: user auth flow with Supabase
+wip(auth): user auth flow with Supabase
 
 State: login/signup working, password reset WIP (email sends but redirect fails)
 Context: using Supabase Auth, not custom — decided against custom because RLS integration is cleaner
@@ -61,19 +80,30 @@ Next: debug the password reset redirect, then add Google OAuth
 ```
 
 ```
-checkpoint: API rate limiter middleware
+wip(api): rate limiter middleware
 
 State: rate limiter works for authenticated routes, untested on public routes
 Context: using sliding window algorithm (not token bucket) because it's simpler and we don't need burst handling
 Next: add tests for public routes, then integrate with the error handler
 ```
 
-**Bad checkpoint messages:**
 ```
-checkpoint: work in progress    # What work? What's the state?
-checkpoint: stuff                # Useless
-checkpoint: saving               # Obviously — that's what checkpoint means
+chore(deps): checkpoint before pnpm update
+
+State: about to bump all devDependencies, want a clean rollback point
+Context: Dependabot PR #42 just landed and I want to experiment locally before merging more
+Next: pnpm update --latest and run full CI locally
 ```
+
+**Bad checkpoint messages (auto-rewritten or blocked):**
+```
+checkpoint: work in progress    → blocked — no scope, no real description
+checkpoint: stuff                → blocked
+checkpoint: saving               → blocked
+saving auth stuff                → rewritten to "wip(auth): saving auth stuff" + prompt for better body
+```
+
+**If commitlint is installed (recommended, per DEFAULTS-ADR-0001):** the `.husky/commit-msg` hook will reject non-conforming messages before they land. The checkpoint flow should never need to override that — if commitlint rejects the message, the checkpoint flow rewrites it and retries, it does not bypass the hook.
 
 ### Step 2: Annotate CLAUDE.md (If Needed)
 

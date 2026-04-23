@@ -39,6 +39,9 @@ Before creating anything, understand the project. Ask about:
 6. **Who else works on this?** (solo, team, open source)
 7. **What external services will it connect to?** (APIs, databases, auth providers, etc.)
 8. **Is there a design system, brand guide, or existing conventions to follow?**
+9. **Will this project have AI/agent features?** (prompts, LLM calls, agent workflows) — determines whether `/evals/` is scaffolded.
+10. **Will this project have architectural decisions to record?** (library choices, major pattern decisions, trade-offs worth documenting) — determines whether `/docs/decisions/` is scaffolded. Default: YES for Tier 1, OPTIONAL for Tier 2, SKIP for Tier 3.
+11. **Tier assignment?** — Tier 1 (production / money-touching), Tier 2 (internal tools), or Tier 3 (experiment). Drives which subset of the template is scaffolded. See `DEFAULTS-ADR-0001.md` in the Claude-Skills repo for the full tier rubric.
 
 Don't over-interview — if the user gives a clear brief ("Next.js app with Supabase on Vercel"), infer reasonable defaults and confirm them rather than asking 20 questions.
 
@@ -71,17 +74,47 @@ project-root/
 │   ├── rules/                # Path-scoped instruction files
 │   ├── skills/               # Project-specific skills
 │   └── agents/               # Subagent definitions
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml            # Lint + typecheck + test + gitleaks + build
+│   │   └── evals.yml         # Eval suite (AI projects only)
+│   ├── dependabot.yml        # Weekly dependency update PRs
+│   └── pull_request_template.md
+├── .husky/                   # Pre-commit + commit-msg hooks
 ├── CLAUDE.md                 # Primary project instructions
 ├── CLAUDE.local.md           # Personal overrides (gitignored)
 ├── README.md                 # Human-readable project overview
+├── CONTRIBUTING.md           # Commit format, PR workflow, review checklist
+├── CHANGELOG.md              # Keep a Changelog format, ## [Unreleased] section
 ├── src/                      # Application source code
 ├── tests/                    # Test files
-├── docs/                     # Extended documentation
+├── docs/
+│   ├── ARCHITECTURE.md       # How the pieces fit
+│   ├── WORKFLOW.md           # Golden-path "what a feature looks like end-to-end"
+│   └── decisions/            # ADRs (conditional — see below)
+│       ├── DECISIONS.md      # Index of all ADRs
+│       ├── 0000-template.md  # ADR template
+│       └── README.md         # How and when to write an ADR
+├── evals/                    # AI/agent evals (conditional — see below)
+│   ├── datasets/
+│   ├── rubrics/
+│   ├── runners/
+│   ├── history/              # Committed eval run results
+│   ├── threshold.json        # CI pass/fail threshold
+│   └── README.md
 ├── scripts/                  # Build/deploy/utility scripts
 └── .env.example              # Environment variable template
 ```
 
-Adapt this to the stack. A Next.js project uses `app/` or `pages/`. A Python project uses a package directory. A monorepo adds `packages/` or `apps/`. The structure should feel native to the ecosystem, not forced into a generic template.
+**Conditional directories:**
+- `/evals/` — scaffold ONLY if the project has AI/agent features (from Phase 1 question 9). Skip entirely otherwise.
+- `/docs/decisions/` — scaffold for Tier 1 always, Tier 2 if the user opts in at Phase 1 question 10, Tier 3 never. Always include `DECISIONS.md` as the index file when scaffolded.
+- `.github/workflows/evals.yml` — scaffold only if `/evals/` is scaffolded.
+- `.husky/`, `.github/dependabot.yml`, `.github/pull_request_template.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md`, `docs/WORKFLOW.md` — always scaffold for Tier 1 and Tier 2. Tier 3 skips all of these and gets only a `STATUS.md` (see Tier 3 minimum below).
+
+Adapt the application code structure to the stack. A Next.js project uses `app/` or `pages/`. A Python project uses a package directory. A monorepo adds `packages/` or `apps/`. The structure should feel native to the ecosystem, not forced into a generic template.
+
+**Tier 3 minimum:** a single `STATUS.md` in the project root that says `"experimental — not maintained"` or `"archived YYYY-MM-DD — [reason]"`. No CLAUDE.md, no tests, no CI, no docs. That's the whole point of Tier 3.
 
 #### Step 3: Write CLAUDE.md
 
@@ -124,11 +157,27 @@ Commands to install, run, test, and build:
 
 [Only include conventions that differ from ecosystem defaults]
 
-## Workflow
+## Non-Negotiable Workflow Rules
 
-- Always run `npm run lint` and `npm run test` after making changes
-- Use conventional commits (feat:, fix:, docs:, etc.)
-- Create feature branches off `main`
+1. **Never commit directly to `main`.** Branch → PR → merge, even solo.
+2. **Conventional Commits format for every commit.** No exceptions. WIP and checkpoint commits use `wip(scope):` or `chore(scope):` prefixes.
+3. **Every architectural decision gets an ADR** in `docs/decisions/NNNN-slug.md` before merge. Update `docs/decisions/DECISIONS.md` index in the same PR.
+4. **Every bug fix gets a regression test** before the fix ships.
+5. **Every agent/prompt change commits the eval run log** to `/evals/history/`.
+6. **`CHANGELOG.md` `## [Unreleased]` section is updated** for every user-facing change.
+7. **Self-merge requires a 10-minute cool-down** after PR opened. Re-read the diff fresh before merging. CI enforces this via the `pr-age-check` job.
+
+## Verification Commands Claude Must Use
+
+Claude must run these before declaring any task done:
+
+- `pnpm lint` — linting
+- `pnpm typecheck` — type checking (`tsc --noEmit`)
+- `pnpm test` — full test suite
+- `pnpm build` — build must succeed
+- `pnpm test:evals` — eval suite (AI projects only)
+
+If any of these fail, the task is not done.
 
 ## Project-Specific Gotchas
 
@@ -137,7 +186,9 @@ Commands to install, run, test, and build:
 ## Skills & References
 
 - See `.claude/skills/` for domain-specific knowledge
-- See `docs/` for extended documentation
+- See `docs/ARCHITECTURE.md` for how the pieces fit
+- See `docs/WORKFLOW.md` for the golden-path feature workflow
+- See `docs/decisions/DECISIONS.md` for all ADRs
 ```
 
 #### Step 4: Configure .claude/ Directory
@@ -192,13 +243,11 @@ The README is for humans (and GitHub). Include:
 
 #### Step 6: Set Up Verification
 
-The most impactful thing you can do for Claude-assisted development. Set up:
+The most impactful thing you can do for Claude-assisted development. A proper verification stack has five layers — earlier layers catch problems faster and cheaper than later ones.
 
-1. **Linting** — ESLint, Prettier, Ruff, etc. appropriate to the stack
-2. **Type checking** — TypeScript strict mode, mypy, etc.
-3. **Testing framework** — Jest, Vitest, pytest, etc. with at least one example test
-4. **Pre-commit hooks** — Lint and type-check before every commit (use Husky, pre-commit, or Claude hooks)
-5. **Claude hooks** — In `.claude/settings.json`, add hooks that run linting after file edits:
+**Layer 1 — Claude hooks (instant, per-edit):**
+
+In `.claude/settings.json`, add hooks that lint after file edits:
 
 ```json
 {
@@ -206,18 +255,180 @@ The most impactful thing you can do for Claude-assisted development. Set up:
     "PostToolExecution": [
       {
         "matcher": "Edit|Write",
-        "command": "npm run lint --fix 2>&1 | tail -5"
+        "command": "pnpm lint --fix 2>&1 | tail -5"
       }
     ]
   }
 }
 ```
 
+**Layer 2 — Pre-commit hooks (seconds, before commit):**
+
+Install Husky + lint-staged + commitlint per `DEFAULTS-ADR-0001.md`:
+
+```bash
+pnpm add -D husky lint-staged @commitlint/cli @commitlint/config-conventional
+pnpm exec husky init
+```
+
+Create `.husky/pre-commit`:
+```bash
+pnpm exec lint-staged
+pnpm exec gitleaks protect --staged --verbose --redact
+```
+
+Create `.husky/commit-msg`:
+```bash
+pnpm exec commitlint --edit "$1"
+```
+
+Add to `package.json`:
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml}": ["prettier --write"]
+  }
+}
+```
+
+Create `commitlint.config.js`:
+```js
+export default { extends: ['@commitlint/config-conventional'] };
+```
+
+**Layer 3 — Local test/build scripts (minutes, on demand):**
+
+- **Linting** — ESLint + Prettier appropriate to the stack
+- **Type checking** — TypeScript strict mode (`tsc --noEmit`)
+- **Testing framework** — Vitest with at least one example test per the defaults ADR
+- **Build** — Catches build-time errors not caught by typecheck
+
+All wired into `package.json` scripts: `lint`, `typecheck`, `test`, `build`.
+
+**Layer 4 — CI (minutes, on every PR):**
+
+Create `.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test --coverage
+      - run: pnpm build
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-age-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce 10-minute cool-down on self-merge
+        run: |
+          OPENED_AT=$(gh pr view ${{ github.event.pull_request.number }} --json createdAt -q .createdAt)
+          OPENED_EPOCH=$(date -d "$OPENED_AT" +%s)
+          NOW_EPOCH=$(date +%s)
+          AGE=$((NOW_EPOCH - OPENED_EPOCH))
+          if [ $AGE -lt 600 ]; then
+            echo "PR is only $AGE seconds old. Minimum 600 seconds (10 min) required before self-merge."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Skip the `pr-age-check` job for `dependabot[bot]` and `docs:` PRs via commit-message match if desired.
+
+If the project has AI features, also create `.github/workflows/evals.yml` that runs on PRs touching `/evals/**`, `/src/agents/**`, or prompt files. Posts score as a PR comment. Fails if the score drops below `evals/threshold.json`.
+
+**Layer 5 — Dependabot (weekly, automated PRs):**
+
+Create `.github/dependabot.yml` per the defaults ADR. Groups dev-dependencies together. Major-version bumps come through as individual PRs so each can get its own ADR.
+
+**Pull request template** — create `.github/pull_request_template.md`:
+```markdown
+## What changed
+
+## Why
+
+## Checklist
+- [ ] Conventional commit format used
+- [ ] Tests added/updated (or N/A with reason)
+- [ ] ADR written if architectural decision made
+- [ ] CHANGELOG Unreleased section updated if user-facing
+- [ ] Eval log committed if agent/prompt changed
+- [ ] CI green (including 10-min cool-down for self-merge)
+```
+
+**Verify before declaring kickoff complete:** Before moving on, confirm:
+1. `pnpm install` → `pnpm lint` → `pnpm typecheck` → `pnpm test` → `pnpm build` all succeed locally.
+2. The initial commit triggers CI on GitHub and CI passes green.
+3. If `/evals/` was scaffolded, `pnpm test:evals` runs and produces a score.
+4. Husky hooks fire (make a test commit with a bad message — commitlint should reject it).
+
+If any layer fails, fix it before Phase 3. A broken verification layer at kickoff becomes permanent tech debt.
+
 #### Step 7: Environment and Deployment Config
 
 - Create `.env.example` with all required environment variables (no actual values)
 - Set up deployment config if applicable (vercel.json, Dockerfile, etc.)
 - Configure CI/CD basics if the project uses GitHub Actions or similar
+
+#### Step 8: Clone from Template (Preferred Path)
+
+**Before running any of steps 1–7 from scratch,** check whether the user's template repo exists. If it does, clone from it — it already has every layer configured correctly.
+
+```bash
+# Check if the template repo exists
+gh repo view Brandondaymdr/project-template 2>/dev/null && echo "TEMPLATE EXISTS"
+```
+
+If the template exists, confirm with the user:
+
+> "I found `Brandondaymdr/project-template`. Which variant fits this project?
+> 1. `web-next-supabase` — Next.js 15 + Supabase + Vercel
+> 2. `desktop-tauri` — Tauri v2 + React + Drizzle + SQLite/Turso
+> 3. `node-lib` — TypeScript library/utility
+>
+> Or clone from scratch if none fit?"
+
+On confirmation, run:
+
+```bash
+gh repo create <new-project-name> \
+  --template Brandondaymdr/project-template \
+  --private \
+  --clone
+
+cd <new-project-name>
+
+# Remove the variants you don't need (the template ships all three as subdirs)
+# Keep only the one you selected, move its contents up a level.
+# Commit the cleanup as the first commit on main:
+git add -A
+git commit -m "chore: initialize from $VARIANT template variant"
+```
+
+**If the template doesn't exist yet** (or the user explicitly wants to bootstrap from scratch): fall back to Steps 1–7 above, then offer to promote the result into `project-template` when done. Every from-scratch kickoff is a prompt to build the template.
+
+**If the template is out of date** compared to current best practices (detected by running `/folder-forensic-audit` on the template itself): fix the template first, then kickoff. Template debt compounds across every future project.
 
 ### Phase 3: Skill Audit
 
@@ -239,21 +450,39 @@ claude /plugins list 2>/dev/null || echo "No plugin system available"
 
 Present findings: "You have X skills installed. For this project, Y and Z look relevant. You might also want to create skills for [domain A] and [domain B]."
 
-### Phase 4: Initial Commit
+### Phase 4: Initial Commit and Branch Protection
 
-Create a clean initial commit with all scaffolding:
+Create a clean initial commit with all scaffolding, then enable branch protection so the workflow rules self-enforce from day one.
 
 ```bash
+# First commit on main establishes the baseline
 git add -A
-git commit -m "feat: initial project scaffolding
+git commit -m "chore: initial project scaffolding
 
 - Project structure with src/, tests/, docs/
-- CLAUDE.md with project conventions and commands
+- CLAUDE.md with non-negotiable workflow rules and verification commands
 - .claude/ configuration (settings, commands, rules, agents)
-- README.md with setup instructions
-- Linting, testing, and verification setup
+- README.md, CONTRIBUTING.md, CHANGELOG.md
+- docs/ARCHITECTURE.md, docs/WORKFLOW.md, docs/decisions/ with ADR 0001
+- Linting, typechecking, Vitest, Husky, commitlint, lint-staged
+- CI workflow with gitleaks and 10-minute PR cool-down
+- Dependabot config
 - Environment template (.env.example)"
+
+# Push main
+git push -u origin main
+
+# Enable branch protection via gh CLI
+gh api -X PUT repos/:owner/:repo/branches/main/protection \
+  -f required_status_checks[strict]=true \
+  -f required_status_checks[contexts][]=verify \
+  -f required_status_checks[contexts][]=pr-age-check \
+  -f enforce_admins=true \
+  -f required_pull_request_reviews[required_approving_review_count]=0 \
+  -f restrictions=null
 ```
+
+After this commit, all future work happens on branches with PRs. If the user tries to commit to main, git and GitHub will both refuse.
 
 ### Phase 5: Kickoff Summary
 
