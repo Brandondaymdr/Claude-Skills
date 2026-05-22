@@ -547,9 +547,9 @@ Each Category A fix lands as its own commit:
 chore(conformance): add <file> from template
 ```
 
-#### Category B — Apply with confirmation (modifies existing files)
+#### Category B — Apply with confirmation (modifies existing files or remote state)
 
-These fixes modify files that already exist. **Show a diff preview and require user confirmation before applying each one.**
+These fixes modify state that already exists. **Require explicit user confirmation before applying each one.** For file edits, show a diff preview first. For remote-state changes (e.g. GitHub API), show the exact command and what it will change, then confirm.
 
 Examples (see fix matrix for the full list):
 - `CLAUDE.md` — backfill the 7 non-negotiable workflow rules section
@@ -557,7 +557,7 @@ Examples (see fix matrix for the full list):
 - `.github/workflows/ci.yml` — add `pr-age-check` job and gitleaks step if missing
 - `package.json` — add `lint`, `typecheck`, `test`, `build` scripts if missing
 - `.gitignore` — add `.env`, `node_modules`, `.DS_Store`, build outputs if missing
-- Branch protection on `main` via `gh api` (no file commit, but include in PR description)
+- Branch protection on `main` via `gh api` (no file commit, but document in PR description)
 
 Each Category B fix lands as its own commit:
 
@@ -650,11 +650,11 @@ Track waivers in `.claude/conformance-exceptions.md`. Each exception must cite a
 
 ## Active exceptions
 
-- **package-manager-npm** — using npm instead of pnpm. See `docs/decisions/0007-keep-npm.md`.
-- **no-husky** — pre-commit hooks disabled. See `docs/decisions/0012-disable-husky.md`.
+- **package-manager-field** — using npm instead of pnpm. See `docs/decisions/0007-keep-npm.md`.
+- **husky-pre-commit**, **husky-commit-msg** — pre-commit hooks disabled for this CLI-only project. See `docs/decisions/0012-disable-husky.md`.
 ```
 
-Format: `<fix-id>` matches an ID from the fix matrix. Conformance reads this file in the pre-flight and skips matching fixes. The PR description lists what was waived so the choice stays visible.
+Format: each `<fix-id>` must match an ID from `references/conformance-fix-matrix.md`. To waive a group of related fixes (e.g. all Husky hooks), list each ID — there is no group-level waiver. Conformance reads this file during pre-flight and skips matching fixes. The PR description lists what was waived so the choice stays visible.
 
 ### What conformance doesn't do
 

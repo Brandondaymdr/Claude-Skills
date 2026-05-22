@@ -156,7 +156,9 @@ Under what conditions should we reopen this decision?
 
 ### `CONTRIBUTING.md` skeleton
 
-```markdown
+Outer fence uses four backticks so the inner triple-backtick code blocks render correctly:
+
+````markdown
 # Contributing
 
 ## Workflow
@@ -199,7 +201,7 @@ Branch prefix matches the commit type: `feat/...`, `fix/...`, `chore/...`,
 
 Every architectural decision gets an ADR in `docs/decisions/NNNN-slug.md`
 before the PR merges. Update `docs/decisions/DECISIONS.md` in the same PR.
-```
+````
 
 ### `.claude/conformance-exceptions.md` stub
 
