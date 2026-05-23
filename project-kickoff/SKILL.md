@@ -325,6 +325,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -350,7 +354,7 @@ jobs:
     steps:
       - name: Enforce 10-minute cool-down on self-merge
         run: |
-          OPENED_AT=$(gh pr view ${{ github.event.pull_request.number }} --json createdAt -q .createdAt)
+          OPENED_AT=$(gh pr view ${{ github.event.pull_request.number }} --json createdAt -q .createdAt --repo "$GITHUB_REPOSITORY")
           OPENED_EPOCH=$(date -d "$OPENED_AT" +%s)
           NOW_EPOCH=$(date +%s)
           AGE=$((NOW_EPOCH - OPENED_EPOCH))
@@ -361,6 +365,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+The top-level `permissions:` block is **required** — the default `GITHUB_TOKEN` is read-only on contents but does NOT grant `pull_requests:read`. Without this block, both `gitleaks-action` (queries `/pulls/{n}/commits`) and `pr-age-check` (uses `gh pr view`) will fail with 403. The `--repo "$GITHUB_REPOSITORY"` on the `gh pr view` line is similarly required so the gh CLI knows which repo it's querying without relying on a working directory it may not have.
 
 Skip the `pr-age-check` job for `dependabot[bot]` and `docs:` PRs via commit-message match if desired.
 
