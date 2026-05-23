@@ -195,6 +195,14 @@ If any of these fail, the task is not done.
 
 Read `references/claude-config-guide.md` for detailed setup. Create:
 
+**tier** — A single file at `.claude/tier` containing one digit (`1`, `2`, or `3`) matching the tier chosen in the Phase 1 interview. This is the persistent marker that downstream skills (`folder-forensic-audit`, Phase 6 conformance) read to gate behavior. Without it, tier has to be re-asked every audit — and tier rules silently degrade.
+
+```bash
+echo "1" > .claude/tier   # or 2, or 3 — matches Phase 1 question 11
+```
+
+For Tier 3 projects, this file lives alongside `STATUS.md` in the project root structure (Tier 3 skips the rest of `.claude/`, but the tier marker still goes in if `.claude/` is created).
+
 **settings.json** — Permissions appropriate to the stack:
 ```json
 {

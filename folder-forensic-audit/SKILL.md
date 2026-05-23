@@ -493,27 +493,176 @@ Auditor: Claude (session-forensic-audit)
 
 **Tier 3 projects** should not be audited with this scorecard at all — they're minimal by design. Audit Tier 3 only for a single check: does `STATUS.md` exist?
 
-## Auto-Fix Mode
+## Phase 6: Conformance Mode
 
-After presenting the report, offer to fix issues automatically:
+Phases 1–5 are diagnostic — they read project state and produce a report. Phase 6 is the prescriptive counterpart: it applies fixes to bring the project into structural alignment with the canonical defaults in `DEFAULTS-ADR-0001.md` and `WORKFLOW-GOLDEN-PATH.md`.
 
-"I found [X] issues. Want me to fix them? I can handle [list fixable items] automatically. [List items requiring decisions] need your input."
+Conformance is **opt-in**. The audit alone is safe to run anytime — it never writes. Conformance is invoked explicitly when the user is ready to retrofit.
 
-Fixable automatically:
-- Create missing .claude/ structure
-- Add missing .gitignore entries
-- Create .env.example from .env
-- Delete temp files
-- Create stub CLAUDE.md from README + package.json
-- Add missing commands for common scripts
-- Create path-scoped rules from CLAUDE.md content that should be extracted
+### When to invoke
 
-Requires user input:
-- Architecture changes to CLAUDE.md
-- Restructuring source directories
-- Resolving uncommitted changes
-- Choosing between conflicting conventions
-- Deleting stale branches
+- **Retrofitting an older project** to current defaults (Phase 3 of the developer-transition plan)
+- **After a major template update** — bring all downstream projects forward
+- **First-time alignment** when adopting the project-template defaults on an existing repo
+
+Trigger words: "conform", "align", "retrofit", "bring this project up to standard", "apply the defaults", "fix what the audit found", or an explicit `--conform` argument to the skill invocation.
+
+### Pre-flight checks
+
+Before writing anything:
+
+1. **Tier check.** Read tier from `.claude/tier` (or CLAUDE.md if it declares one).
+   - **Tier 3:** Print `"Tier 3 project — conformance skipped by design. Tier 3 is minimal-by-design (see project-kickoff). If graduating to Tier 2, update STATUS.md, declare tier in .claude/tier, and re-run."` and exit.
+   - **Tier missing:** Ask the user to declare. Persist to `.claude/tier` as a single digit (`1`, `2`, or `3`).
+   - **Tier 1 or 2:** Proceed.
+
+2. **Clean working tree.** Any uncommitted changes? Block until they're committed or stashed. Conformance does not run on a dirty tree — its commits must be unambiguous.
+
+3. **Read exceptions.** If `.claude/conformance-exceptions.md` exists, parse it. Each listed exception ID is skipped during this run.
+
+4. **Create the conformance branch.** Never write to `main`:
+
+   ```bash
+   git checkout -b chore/template-conformance-$(date +%Y%m%d)
+   ```
+
+### The fix matrix
+
+Fixes are graded by **safety**, not by audit-finding severity. Three categories. The full per-fix table with file paths and source-of-content pointers lives in `references/conformance-fix-matrix.md`.
+
+#### Category A — Auto-apply (additive, file creation only)
+
+These fixes only create files that don't exist. If the target file already exists, skip silently and note in the run report.
+
+Examples (see fix matrix for the full list):
+- `.husky/pre-commit`, `.husky/commit-msg`, `commitlint.config.js`
+- `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.github/pull_request_template.md`
+- `docs/decisions/0000-template.md`, `docs/decisions/DECISIONS.md`
+- `CHANGELOG.md` (Keep a Changelog skeleton), `CONTRIBUTING.md`, `docs/WORKFLOW.md`
+- `.env.example` stub, `.claude/tier` (from pre-flight)
+
+Each Category A fix lands as its own commit:
+
+```
+chore(conformance): add <file> from template
+```
+
+#### Category B — Apply with confirmation (modifies existing files or remote state)
+
+These fixes modify state that already exists. **Require explicit user confirmation before applying each one.** For file edits, show a diff preview first. For remote-state changes (e.g. GitHub API), show the exact command and what it will change, then confirm.
+
+Examples (see fix matrix for the full list):
+- `CLAUDE.md` — backfill the 7 non-negotiable workflow rules section
+- `CLAUDE.md` — add the verification commands section
+- `.github/workflows/ci.yml` — add `pr-age-check` job and gitleaks step if missing
+- `package.json` — add `lint`, `typecheck`, `test`, `build` scripts if missing
+- `.gitignore` — add `.env`, `node_modules`, `.DS_Store`, build outputs if missing
+- Branch protection on `main` via `gh api` (no file commit, but document in PR description)
+
+Each Category B fix lands as its own commit:
+
+```
+chore(conformance): update <file> — <what changed>
+```
+
+#### Category C — Never auto-apply (manual follow-up)
+
+Surfaced in the report and the final PR description, but never executed:
+
+- Restructure source directories
+- Rename existing files (risk of breaking imports)
+- Change package manager (lockfile regen + dependency audit required)
+- Delete files or branches
+- Modify source code
+- Apply dependency upgrades (Dependabot's job)
+- Resolve uncommitted changes (must be done before conformance starts)
+
+### Workflow
+
+```bash
+# 1. Pre-flight checks pass, branch is created
+
+# 2. For each Category A fix:
+#    - Check if target file exists; if so, skip (record in report)
+#    - Write file from canonical source
+#    - git add <file>
+#    - git commit -m "chore(conformance): add <file> from template"
+
+# 3. For each Category B fix:
+#    - Show diff preview
+#    - Confirm with user
+#    - Apply
+#    - git add <file>
+#    - git commit -m "chore(conformance): update <file> — <what changed>"
+
+# 4. Push the branch
+git push -u origin HEAD
+
+# 5. Open a PR — do NOT auto-merge, respects the 10-min cool-down
+gh pr create --title "chore(conformance): align with project-template defaults" \
+  --body "$(cat <<'EOF'
+[PR description — see template below]
+EOF
+)"
+```
+
+### PR description template
+
+```markdown
+## Conformance Run — YYYY-MM-DD
+
+Brings the project into alignment with the canonical defaults in
+`DEFAULTS-ADR-0001.md` and `WORKFLOW-GOLDEN-PATH.md`.
+
+### Applied — Category A (additive)
+- [x] `.husky/pre-commit`, `.husky/commit-msg`
+- [x] `commitlint.config.js`
+- [x] `.github/workflows/ci.yml`
+- [ ] `.github/dependabot.yml` — skipped, already exists
+
+### Applied — Category B (modifications)
+- [x] `CLAUDE.md` — added 7 non-negotiable rules section
+- [x] `.gitignore` — added `.env`, `.DS_Store`, build outputs
+
+### Manual follow-up — Category C
+- Source files in project root — consider moving to `src/`
+- Package manager is npm; defaults call for pnpm — see `DEFAULTS-ADR-0001 §1`
+- Test coverage 22% — needs targeted regression test backfill
+
+### Exceptions waived
+- (any active entries from `.claude/conformance-exceptions.md`)
+
+### Verification before merge
+- `pnpm install` (regenerates lockfile if `package.json` was modified)
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green
+- CI passes
+- 10-minute cool-down per `DEFAULTS-ADR-0001 §8`
+```
+
+### Exceptions mechanism
+
+Projects may intentionally diverge from defaults — a legacy npm project that can't migrate to pnpm, a CLI that doesn't need Husky, etc. Without a way to mark these, the audit will keep flagging them forever and the report becomes noise.
+
+Track waivers in `.claude/conformance-exceptions.md`. Each exception must cite a project ADR justifying the divergence — divergence without a documented reason is debt, not a decision.
+
+```markdown
+# Conformance Exceptions
+
+## Active exceptions
+
+- **package-manager-field** — using npm instead of pnpm. See `docs/decisions/0007-keep-npm.md`.
+- **husky-pre-commit**, **husky-commit-msg** — pre-commit hooks disabled for this CLI-only project. See `docs/decisions/0012-disable-husky.md`.
+```
+
+Format: each `<fix-id>` must match an ID from `references/conformance-fix-matrix.md`. To waive a group of related fixes (e.g. all Husky hooks), list each ID — there is no group-level waiver. Conformance reads this file during pre-flight and skips matching fixes. The PR description lists what was waived so the choice stays visible.
+
+### What conformance doesn't do
+
+- **Doesn't run tests, lint, or build.** That's the developer's job before merging the PR. Conformance lands the scaffolding; verification is the human's call.
+- **Doesn't regenerate lockfiles.** If `package.json` scripts change, the user runs `pnpm install` and commits the lockfile separately.
+- **Doesn't touch source code.** Pure scaffolding and config only.
+- **Doesn't auto-merge.** Always produces a PR. The 10-minute cool-down applies (per `DEFAULTS-ADR-0001 §8`).
+- **Doesn't bypass commitlint or pre-commit hooks** that already exist. If the project has commitlint installed, the conformance commits must conform — and they do (`chore(conformance):` is a valid Conventional Commits prefix).
 
 ## Cowork Mode Adaptations
 
@@ -523,9 +672,11 @@ When running in Cowork:
 - Can't run tests/build/lint directly — note them as "unable to verify" and recommend the user run them
 - Focus on file structure, documentation, and Claude configuration audits
 - Produce the report as a markdown file in the workspace for the user to review
+- Conformance Mode requires git write access — if Cowork can't delegate to a Claude Code session, surface the fix matrix as recommendations only, no commits
 
 ## Reference Files
 
 - `references/audit-checklist.md` — Quick-reference checklist for running audits
 - `references/best-practices-baseline.md` — Current best practices to audit against
+- `references/conformance-fix-matrix.md` — Per-fix table for Phase 6: target file, category, source of content, inline templates
 - `agents/` — Subagent definitions for multi-agent audit mode
