@@ -20,9 +20,23 @@ Before applying any Category A fix, scan for legitimate naming alternates. Varia
 | `docs/decisions/DECISIONS.md` | `docs/<variant>/DECISIONS.md`, `docs/<variant>/README.md`, `docs/<variant>/INDEX.md` |
 | `.github/pull_request_template.md` | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
 | `commitlint.config.js` | `commitlint.config.{ts,mjs,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
-| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag as non-canonical, do not rename) |
+| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag as non-canonical, do not rename); `.changeset/config.json` (Changesets — auto-generates CHANGELOG, do not scaffold) |
 
 Detected variants are listed in the run report under "Naming variants observed." Renames are surfaced as Category C — never auto-applied.
+
+**Sub-file targeting.** When a directory-level variant is detected (e.g. `docs/adr/`), file-level fixes scoped to the canonical directory (e.g. `docs/decisions/0000-template.md`) target the **variant directory** instead (e.g. `docs/adr/0000-template.md`).
+
+## Fix prerequisites (pre-check before Category A/B)
+
+Some fixes have prerequisites that conformance does not install. If a prereq is missing, the fix is skipped and the install command goes into the PR description's "Manual follow-up" section.
+
+| Fix ID | Prerequisite check | Install command surfaced if missing |
+|---|---|---|
+| `commitlint-config` | `@commitlint/cli` in `package.json` devDependencies | `pnpm add -D @commitlint/cli @commitlint/config-conventional` |
+| `husky-commit-msg` | `@commitlint/cli` in devDependencies AND a commitlint config (canonical or variant) | Same as above; hook would fail without commitlint |
+| `husky-pre-commit` gitleaks append | `gitleaks` binary available locally | `brew install gitleaks` (or platform equivalent) |
+
+Prerequisite checks happen **after** variant recognition but **before** the fix lands.
 
 ## Category A — Additive (auto-apply, one commit each)
 

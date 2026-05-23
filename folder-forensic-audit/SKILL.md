@@ -537,9 +537,11 @@ Real projects use legitimate alternates of canonical names. The skill recognizes
 | `docs/decisions/DECISIONS.md` | `docs/<variant>/DECISIONS.md`, `docs/<variant>/README.md`, `docs/<variant>/INDEX.md` |
 | `.github/pull_request_template.md` | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
 | `commitlint.config.js` | `commitlint.config.{ts,mjs,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
-| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag in report as "non-canonical name" but do not rename) |
+| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag in report as "non-canonical name" but do not rename); `.changeset/config.json` (Changesets auto-generates CHANGELOG at release time — do not scaffold a hand-maintained one) |
 
 If a variant is detected, the conformance run report includes a line under "Naming variants observed" so the user sees the divergence. Renames are surfaced as Category C — never auto-applied.
+
+**Sub-file targeting.** When a directory-level variant is detected (e.g. `docs/adr/`), subsequent fixes that target files inside the canonical directory (e.g. `docs/decisions/0000-template.md`) target the **variant directory** instead (e.g. `docs/adr/0000-template.md`). Otherwise variant recognition is meaningless — the canonical directory would be created next to the variant and the ADR template would land in the wrong place.
 
 ### The fix matrix
 
@@ -594,6 +596,22 @@ Surfaced in the report and the final PR description, but never executed:
 - Apply dependency upgrades (Dependabot's job)
 - Resolve uncommitted changes (must be done before conformance starts)
 - Trim oversized `CLAUDE.md` after a backfill push it over 200 lines (see Category B note above)
+- Install missing fix prerequisites (see "Fix prerequisites" below)
+
+#### Fix prerequisites
+
+Some fixes have prerequisites — usually a devDependency that must be installed for the fix to be functional. Conformance **does not install dependencies** (that would require modifying `package.json` + regenerating the lockfile, which is Category C territory).
+
+When a fix's prerequisite is missing, the fix is **skipped** and the missing prerequisite is surfaced as a Category C follow-up with the exact install command. After the user installs the prereq and re-runs conformance, the dependent fixes apply cleanly on the next run.
+
+| Fix | Prerequisite | If missing, the run report surfaces |
+|---|---|---|
+| `commitlint-config` | `@commitlint/cli` in `package.json` devDependencies | `"Install commitlint: pnpm add -D @commitlint/cli @commitlint/config-conventional, then re-run conformance"` |
+| `husky-commit-msg` | `@commitlint/cli` in devDependencies AND a commitlint config present (canonical or variant) | Same install command + note that the hook would fail without commitlint |
+| `ci-gitleaks` step | none — gitleaks runs from a GitHub Action, no local install needed | (no prereq check) |
+| `husky-pre-commit` gitleaks step append | `gitleaks` binary available locally OR a hook that doesn't fail when the binary is missing | If unsure, surface as Category C with install hint: `brew install gitleaks` or equivalent |
+
+The prerequisite check happens **after** variant recognition but **before** the fix lands. A missing prereq is not a fatal error — conformance continues, just skips the dependent fix and adds the install command to the PR description's "Manual follow-up" section.
 
 ### Workflow
 
