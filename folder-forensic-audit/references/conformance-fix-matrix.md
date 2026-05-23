@@ -10,9 +10,23 @@ Quick reference for `folder-forensic-audit` Phase 6 — what conformance writes,
 | Tier 2 (internal tools) | Run full matrix |
 | Tier 3 (experimental / archived) | No-op — exit with instructions to graduate first |
 
+## Variant recognition (pre-check before Category A)
+
+Before applying any Category A fix, scan for legitimate naming alternates. Variants count as "already present" — do not create a duplicate.
+
+| Canonical | Recognized as already-present if any of these exist |
+|---|---|
+| `docs/decisions/` | `docs/adr/`, `docs/architecture-decisions/`, `docs/adrs/` |
+| `docs/decisions/DECISIONS.md` | `docs/<variant>/DECISIONS.md`, `docs/<variant>/README.md`, `docs/<variant>/INDEX.md` |
+| `.github/pull_request_template.md` | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
+| `commitlint.config.js` | `commitlint.config.{ts,mjs,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
+| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag as non-canonical, do not rename) |
+
+Detected variants are listed in the run report under "Naming variants observed." Renames are surfaced as Category C — never auto-applied.
+
 ## Category A — Additive (auto-apply, one commit each)
 
-These fixes **only create files that don't exist**. If the target exists, skip silently and note in the run report.
+These fixes **only create files that don't exist** (including variants per the table above). If the target or a recognized variant exists, skip silently and note in the run report.
 
 | Fix ID | Target file | Source of content |
 |---|---|---|
