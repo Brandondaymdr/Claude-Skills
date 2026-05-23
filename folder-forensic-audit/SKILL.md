@@ -511,20 +511,35 @@ Trigger words: "conform", "align", "retrofit", "bring this project up to standar
 
 Before writing anything:
 
-1. **Tier check.** Read tier from `.claude/tier` (or CLAUDE.md if it declares one).
+1. **Tier check.** Read tier from `.claude/tier` (a single digit file containing `1`, `2`, or `3`).
    - **Tier 3:** Print `"Tier 3 project — conformance skipped by design. Tier 3 is minimal-by-design (see project-kickoff). If graduating to Tier 2, update STATUS.md, declare tier in .claude/tier, and re-run."` and exit.
-   - **Tier missing:** Ask the user to declare. Persist to `.claude/tier` as a single digit (`1`, `2`, or `3`).
+   - **Tier missing:** Ask the user to declare. Persist to `.claude/tier`. Do not infer from CLAUDE.md content — the marker file is the only source of truth.
    - **Tier 1 or 2:** Proceed.
 
 2. **Clean working tree.** Any uncommitted changes? Block until they're committed or stashed. Conformance does not run on a dirty tree — its commits must be unambiguous.
 
 3. **Read exceptions.** If `.claude/conformance-exceptions.md` exists, parse it. Each listed exception ID is skipped during this run.
 
-4. **Create the conformance branch.** Never write to `main`:
+4. **Scan for naming variants.** Before deciding what's "missing," check for legitimate alternates of the canonical names (see "Naming variants" below). Variant detection updates the working "what's already present" set so Category A doesn't create duplicates.
 
-   ```bash
-   git checkout -b chore/template-conformance-$(date +%Y%m%d)
-   ```
+5. **Branch handling.** Conformance commits land on a dedicated branch, never on `main`. Three cases:
+   - **On `main` with clean tree:** create `chore/template-conformance-$(date +%Y%m%d)` and switch to it.
+   - **On a feature branch with clean tree:** ask the user — proceed on current branch (stack the conformance commits on top of in-progress work), or stash + switch to a fresh conformance branch. Document the choice in the eventual PR description.
+   - **On `main` and the conformance branch already exists from a previous attempt:** switch to it and continue; do not create a duplicate.
+
+### Naming variants
+
+Real projects use legitimate alternates of canonical names. The skill recognizes these as **already present** — it does not try to create a duplicate, and it does not propose a rename unless the user explicitly asks for one (rename is Category C).
+
+| Canonical | Recognized variants |
+|---|---|
+| `docs/decisions/` | `docs/adr/`, `docs/architecture-decisions/`, `docs/adrs/` |
+| `docs/decisions/DECISIONS.md` | `docs/<variant>/DECISIONS.md`, `docs/<variant>/README.md`, `docs/<variant>/INDEX.md` |
+| `.github/pull_request_template.md` | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
+| `commitlint.config.js` | `commitlint.config.{ts,mjs,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
+| `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag in report as "non-canonical name" but do not rename) |
+
+If a variant is detected, the conformance run report includes a line under "Naming variants observed" so the user sees the divergence. Renames are surfaced as Category C — never auto-applied.
 
 ### The fix matrix
 
@@ -565,17 +580,20 @@ Each Category B fix lands as its own commit:
 chore(conformance): update <file> — <what changed>
 ```
 
+**CLAUDE.md size handling.** Backfilling the 7 non-negotiable rules section adds ~30 lines. If applying that fix pushes `CLAUDE.md` over the 200-line guideline (from `project-kickoff`), the rules section still goes in — it's non-negotiable — but the run report surfaces a Category C follow-up: `"CLAUDE.md is now <N> lines (over 200). Extract gotchas, architecture detail, or convention prose to docs/ or .claude/rules/. Do NOT drop the rules section."` Never silently skip the rules to stay under the limit; the rules are higher-priority than the line count.
+
 #### Category C — Never auto-apply (manual follow-up)
 
 Surfaced in the report and the final PR description, but never executed:
 
 - Restructure source directories
-- Rename existing files (risk of breaking imports)
+- Rename existing files (e.g. `docs/adr/` → `docs/decisions/`) — risk of breaking links + git history confusion
 - Change package manager (lockfile regen + dependency audit required)
 - Delete files or branches
 - Modify source code
 - Apply dependency upgrades (Dependabot's job)
 - Resolve uncommitted changes (must be done before conformance starts)
+- Trim oversized `CLAUDE.md` after a backfill push it over 200 lines (see Category B note above)
 
 ### Workflow
 
