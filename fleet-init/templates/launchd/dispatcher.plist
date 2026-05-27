@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Fleet dispatcher LaunchAgent for {{PROJECT_NAME}} -->
+<!-- Installs to ~/Library/LaunchAgents/com.{{ORG_TAG}}.fleet.{{SLICE_PREFIX}}.dispatcher.plist -->
+<!-- Loads via: launchctl load ~/Library/LaunchAgents/com.{{ORG_TAG}}.fleet.{{SLICE_PREFIX}}.dispatcher.plist -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.{{ORG_TAG}}.fleet.{{SLICE_PREFIX}}.dispatcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>{{WORKDIR}}/.fleet/bin/cron-tick.sh</string>
+        <string>{{WORKDIR}}/.fleet/bin/dispatcher.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>{{WORKDIR}}</string>
+
+    <key>StandardOutPath</key>
+    <string>{{WORKDIR}}/.fleet/logs/dispatcher.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{WORKDIR}}/.fleet/logs/dispatcher.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>{{HOME}}</string>
+    </dict>
+
+    <!-- Schedule: hourly during daytime (7am-10pm local), plus nightly burst at 22, 0, 2, 4 -->
+    <!-- This matches CONFIG.yaml schedule.daytime_hours + schedule.nightly_burst_hours -->
+    <!-- Adjust hours to taste; minimum reasonable cadence is ~30 min to avoid back-pressure -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>11</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>0</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+        <dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>0</integer></dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

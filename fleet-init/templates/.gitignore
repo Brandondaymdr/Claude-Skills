@@ -1,0 +1,19 @@
+# Fleet runtime state — do not commit
+# These files are written by both feature-branch builds AND base-branch
+# validator runs. Tracking them in git causes merge conflicts on every
+# PR merge.
+
+# Operational logs (timestamps, dispatch events, raw script output)
+logs/*.log
+logs/METRICS.md
+logs/GRAVEYARD.md
+
+# Kill switch (presence-only; never committed)
+KILL_SWITCH
+
+# macOS junk
+.DS_Store
+
+# Local-only files an operator might create during debugging
+*.local.bak
+*.tmp
