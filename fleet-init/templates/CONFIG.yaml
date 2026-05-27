@@ -1,0 +1,100 @@
+# Fleet configuration for {{PROJECT_NAME}}
+# Single source of truth for all per-project knobs. Edit here, both dispatcher.sh
+# and validator.sh pick it up via lib.sh's `config_get` helper (requires `yq`).
+#
+# After rendering this template, walk every section below and verify the values
+# match this project's reality. The defaults are reasonable for a TypeScript +
+# pnpm project but won't be right for every stack.
+
+project:
+  name: {{PROJECT_NAME}}
+  repo_url: https://github.com/{{GITHUB_OWNER}}/{{GITHUB_REPO}}
+  base_branch: {{BASE_BRANCH}}
+  branch_prefix: {{BRANCH_PREFIX}}
+  slice_prefix: {{SLICE_PREFIX}}
+
+# Where Fleet runs (informational; cron / LaunchAgent entries live on the host)
+host:
+  name: mac-mini                          # whatever the always-on host is called
+  workdir: {{WORKDIR}}
+  timezone: {{TIMEZONE_LABEL}}
+
+# Cron cadence (minutes between runs)
+schedule:
+  dispatcher_interval_minutes: 60         # how often to pick up the next ready slice
+  validator_interval_minutes: 30          # how often to validate open PRs
+  daytime_hours: "07-22"                  # 7am-10pm local, dispatcher runs at full cadence
+  nightly_burst_hours: [22, 0, 2, 4]      # extra dispatcher runs overnight
+
+# Concurrency limits
+limits:
+  max_concurrent_slices: 2                # how many builders may be active at once
+  max_usd_per_slice: 5                    # hard cap on Claude API spend per builder run
+  max_runtime_minutes_per_slice: 30       # hard wall-clock cap; enforced via `gtimeout` in dispatcher.sh.
+                                          # Slice 95p historically ~5-15 min in the source-project pilot,
+                                          # so 30 leaves ~6x margin for legitimate complex slices and
+                                          # kills runaways well before the $5 budget cap (which used to
+                                          # be the only floor — a 4h47m silent builder run during the
+                                          # pilot was the reason this knob is real now). REQUIRES
+                                          # `brew install coreutils` on the dispatcher host; the
+                                          # dispatcher fails loud at startup if `gtimeout` is missing.
+
+# Models
+# Keeping builder and validator on different providers is intentional —
+# adversarial validation is stronger when the validator wasn't trained on the
+# same data as the builder. Leaving `model` blank uses each CLI's authenticated
+# default (Claude Max → Opus; Codex CLI → its current default). Override here
+# if you want to pin specific models.
+models:
+  builder:
+    provider: anthropic
+    model: sonnet                         # alias accepted by claude CLI; or full name like claude-sonnet-4-6
+    cli: claude
+  validator:
+    provider: openai
+    model: ""                             # blank = codex CLI default
+    cli: codex
+
+# Project commands (read by builder + validator prompts)
+commands:
+  install: {{INSTALL_CMD}}
+  test: {{TEST_CMD}}
+  lint: {{LINT_CMD}}
+  typecheck: {{TYPECHECK_CMD}}
+  check: {{CHECK_CMD}}                    # lint + typecheck + test combined; the single command builders run pre-PR
+  build: {{BUILD_CMD}}
+  format: {{FORMAT_CMD}}
+  format_check: {{FORMAT_CHECK_CMD}}
+
+# Pilot budget (for the initial evaluation window, typically 14 days)
+budget:
+  pilot_total_usd: 300
+  alert_threshold_usd: 200                # warn in METRICS when crossed
+  hard_stop_usd: 290                      # touch KILL_SWITCH automatically when crossed
+
+# Notification (optional — wire later if desired)
+notifications:
+  pr_open: github                         # only the PR itself; no Slack/email yet
+  validator_flagged: github               # PR comment is the signal
+  kill_switch_triggered: log              # written to logs/METRICS.md
+
+# Project-specific guardrails — REVIEW these before first dispatcher tick.
+# Branches Fleet must never touch (your in-flight human work)
+forbidden_branches:
+  # - feat/some-active-feature-branch
+  # - feat/another-active-one
+
+# Files Fleet must never modify. Defaults below are sane for a TypeScript +
+# pnpm + Supabase + Vercel stack. Adjust for your project — e.g. a Shopify
+# theme might add `sections/*.liquid` and `assets/`.
+forbidden_paths:
+  - .github/workflows/                    # CI workflow files — operator-only
+  - .env*                                 # environment files — never touch
+  - CLAUDE.md                             # agent context file — human-curated
+  # - supabase/migrations/                # uncomment if using Supabase
+  # - prisma/migrations/                  # uncomment if using Prisma
+  # - drizzle/                            # uncomment if using Drizzle
+# NOTE: docs/decisions/ is INTENTIONALLY allowed — Fleet drafts ADRs there for
+# human review. Modifications to existing ADR-NNN-*.md files trigger validator
+# FLAG; only NEW files allowed. If your project doesn't keep ADRs in
+# docs/decisions/, adjust the builder prompt accordingly.
