@@ -700,6 +700,18 @@ Format: each `<fix-id>` must match an ID from `references/conformance-fix-matrix
 - **Doesn't auto-merge.** Always produces a PR. The 10-minute cool-down applies (per `DEFAULTS-ADR-0001 §8`).
 - **Doesn't bypass commitlint or pre-commit hooks** that already exist. If the project has commitlint installed, the conformance commits must conform — and they do (`chore(conformance):` is a valid Conventional Commits prefix).
 
+### Known limitations and manual workarounds
+
+The conformance flow works end-to-end for the common case but has three gaps that today require manual judgment. Each is a candidate for a future skill patch.
+
+1. **CLAUDE.md backfill is append-only, not diff-aware.** The `claude-md-rules` fix mechanically inserts the 7-rules section even if some rules are already documented elsewhere in the project's CLAUDE.md (e.g., "Conventional Commits" might already appear under a "Tooling" or "Hard conventions" section). Today the human running conformance should tailor the backfill manually — point at existing sections via the same pointer style as the canonical insertion, rather than duplicating enforcement. Surface as Category C in the run report if duplication is detected.
+
+2. **ADR template doesn't auto-match the existing project format.** When `docs/adr/` is recognized as the `docs/decisions/` variant, the `adr-template` fix still uses the canonical inline template (`Date:` / `Status:` lines). Real projects often use a metadata-table style header instead, and a new `0000-template.md` in the canonical format will be visibly inconsistent with `0001-NNNN` files. Today the runner should derive the template from an existing accepted ADR's header format. Surface as Category C if format mismatch is detected.
+
+3. **Remote-state fixes don't check tool availability.** `branch-protection` requires either `gh` CLI access or direct GitHub API permissions. When neither is present (e.g. a restricted execution environment, or a session without GitHub MCP), the fix silently fails or errors. Today the runner should check tool availability in pre-flight and surface unavailable remote-state fixes as Category C automatically with the manual `gh api` command users can run themselves.
+
+These are recorded here so they don't get lost between conformance runs. When patching, update the relevant section above and remove the entry from this list.
+
 ## Cowork Mode Adaptations
 
 When running in Cowork:
