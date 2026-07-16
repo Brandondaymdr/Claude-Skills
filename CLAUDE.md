@@ -1,148 +1,52 @@
-# BenAI Skills - Expert Automation
+# Claude-Skills
 
-> A marketplace of automation plugins for Claude Code
+Brandon's personal Claude Code skills repo. Each top-level directory is one skill (`SKILL.md` + optional `references/`, `templates/`, `agents/`).
 
-## Available Skills
+## ⚠️ This repo IS the live install
 
-### n8n Automation (`/n8n`)
+`~/.claude/skills` is a **symlink to this repo's working tree**. Any edit here takes effect in every Claude Code session immediately — including uncommitted changes. Two consequences:
 
-Build, test, and deploy n8n workflows via REST API with incremental testing.
+1. **Never leave work uncommitted.** A dirty working tree means live skills that exist nowhere else (this bit us: the Fleet session-skill hooks sat uncommitted for 7 weeks).
+2. **Pull at session start.** This repo is edited from multiple machines (MacBook + Mac Mini). A stale clone means stale live skills — this MacBook ran 2 months behind until 2026-07-16.
 
-**Features:**
-- Workflow automation via REST API
-- Node references for 40+ common nodes
-- JavaScript/Python code patterns
-- Expression syntax reference
-- Debugging guides
+## Workflow rules
 
-**Setup Requirements:**
-```env
-N8N_API_URL=https://your-n8n-instance.com
-N8N_API_KEY=your-api-key
-N8N_CREDENTIALS_TEMPLATE_URL=your-template-url
-```
+Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 
-### Shopify Storefront (`/shopify-storefront`)
+- Branch first (`feat/`, `fix/`, `chore/`, `docs/` prefixes) — never commit to `main`
+- Conventional Commits (`feat(skills):`, `chore(skill):`, `docs(...)`)
+- Every change lands via PR; 10-minute cool-down before merge (squash-merge is the house style)
+- No CI in this repo — the cool-down re-read is the review
 
-Shopify Online Store 2.0 theme development for Cheersworthy.com spirits store.
+## Skill families
 
-**Features:**
-- Liquid templating (sections, blocks, snippets, schema)
-- Theme app extensions for age gates and custom blocks
-- Spirit-specific metafields (ABV, tasting notes, origin, age statement)
-- Storefront API (GraphQL) for headless/WhiskeySomm integration
-- Spirits e-commerce compliance (TTB, state shipping, age verification)
-- Checkout customization and shipping restrictions
+**Session lifecycle** (pair with each other):
+- `session-restart` — context recovery + health check + briefing on return to a project
+- `session-checkpoint` — quick mid-session WIP save
+- `session-closeout` — structured end-of-session SOP (docs, commits, knowledge capture)
 
-### Shopify Sidekick (`/shopify-sidekick`)
+**Project operations:**
+- `project-kickoff` — scaffold new projects with production-grade defaults
+- `folder-forensic-audit` — diagnostic audit (Phases 1–5) + prescriptive Conformance Mode (Phase 6)
+- `fleet-init` — bootstrap a Fleet autonomous-build pipeline (`templates/` are the canonical Fleet scripts; `PARAMETERS.md` defines the `{{PLACEHOLDER}}` substitution contract)
 
-Build Shopify Sidekick AI extensions — data sources and action intents for the Cheersworthy app.
+**Domain skills** (client/product work): `beehiiv*` (WhiskeyTribe newsletter), `cheersworthy-*` (Shopify spirits store), `circle-so-*` (Carla Gentile Yoga community), `obsidian-*` (vault management), `shopify-*`, `toast-*` (POS), plus `adobe-premiere`, `frontend-design`, `instagram`, `internal-comms`, `n8n`, `photoshop-thumbnails`, `slack-comms-builder`, `video`, `whiskeysomm-brand`, `youtube-channel`.
 
-**Features:**
-- Data source extensions (`admin.app.tools.data`) — expose searchable app data to Sidekick
-- Action intent extensions (`admin.app.intent.link`) — let merchants invoke app actions via natural language
-- `tools.json` schema definitions and `shopify.tools.register` handlers
-- MCP Resource Links format for optimal Sidekick rendering
-- Performance optimization (400ms response time, 4,000 token limits)
-- Full Cheersworthy examples (spirit search, order fulfillment, collection analytics)
+## Root documents
 
-### Video Editing (`/video`)
+- `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot, cool-down). Becomes ADR 0001 of the future `project-template` repo.
+- `WORKFLOW-GOLDEN-PATH.md` — the one-page feature workflow; copied to `docs/WORKFLOW.md` in scaffolded projects.
+- `SESSION-SUMMARY*.md` — closeout artifacts from major sessions.
 
-Video editing with FFmpeg and Remotion - stitching, transitions, captions, teasers, transcription.
+## Cross-repo relationships
 
-**Features:**
-- FFmpeg command reference
-- Remotion React-based rendering
-- TikTok-style captions
-- Transcription with whisper.cpp
-- Teaser generation
+- `folder-forensic-audit` Conformance Mode enforces `DEFAULTS-ADR-0001.md`; it was validated against the shorestack repo.
+- `fleet-init/templates/` and live Fleet pilots (barrel-tracking) drift in **both directions**: backport pilot fixes to templates via session-closeout Phase 4.7; forward-port template fixes to pilots manually.
+- The five "session/project" skills implement `DEVELOPER-TRANSITION-PLAN.md` (lives outside this repo).
 
-## Critical Operational Principles
+## Editing conventions
 
-### Incremental Development
-
-The core principle for n8n workflows:
-```
-ADD ONE NODE → TEST → ADD ONE NODE → TEST → REPEAT
-```
-
-This prevents batch errors by validating each addition individually.
-
-### API Best Practices
-
-- Use **PUT** for updates (not PATCH)
-- Use **POST** for activation endpoints
-- Webhook data is under `.body` (not root)
-
-### Video Workflow
-
-For video projects, follow:
-1. Analyze source material
-2. Transcribe audio
-3. Clarify objectives
-4. Plan edits
-5. Run automated QA tests
-6. Preview results
-7. Iterate based on feedback
-
-## Tool Selection
-
-### n8n
-
-**Prioritize native n8n nodes** over HTTP Request or Code nodes.
-
-Hierarchy:
-1. Native n8n node
-2. HTTP Request node
-3. Code node (last resort)
-
-### Video
-
-| Task | Tool |
-|------|------|
-| Fast operations, batch processing | FFmpeg |
-| Styled content, animations | Remotion |
-
-## MCP Server Integration
-
-If available, prefer MCP server tools for node discovery and validation before falling back to direct REST API approaches.
-
-## Skill Directory Structure
-
-```
-skills/
-├── toast-admin/              # Toast POS daily operations
-│   ├── SKILL.md
-│   └── references/
-├── toast-api/                # Toast POS API integrations
-│   ├── SKILL.md
-│   └── references/
-├── circle.so-skills/         # Circle.so community platform
-│   ├── circle-so-admin/
-│   └── circle-so-api/
-├── Sidekick-shopify/         # Shopify Plugin (storefront + sidekick skills)
-│   ├── plugin.json
-│   ├── shared/               # Cheersworthy config, Shopify dev patterns
-│   └── skills/
-│       ├── shopify-storefront/
-│       └── shopify-sidekick/
-├── plaid/                    # Plaid financial platform plugin
-│   ├── manifest.json
-│   ├── mcps/
-│   └── skills/
-├── n8n/                      # n8n workflow automation
-│   ├── SKILL.md
-│   └── references/
-└── video/                    # Video editing
-    ├── SKILL.md
-    └── references/
-```
-
-## Loading a Skill
-
-When a user invokes a skill command, immediately:
-
-1. Read the skill's `SKILL.md` file
-2. Read all files in `references/` directory
-3. Create a todo list for the task
-4. Follow the skill's operational guidelines
+- `SKILL.md` frontmatter `description:` drives skill triggering — write trigger phrases into it.
+- SKILL.md is the source of truth; `references/` are quick-reference aids and may lag.
+- When a skill documents a lesson, genericize project-specific literals (slice IDs, PR numbers, dates) unless the skill is project-specific by design.
+- Skills that reference each other should use relative links (`../session-restart/SKILL.md`).
