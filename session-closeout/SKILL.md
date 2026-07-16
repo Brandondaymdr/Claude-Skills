@@ -83,6 +83,22 @@ git stash push -m "experiment: [description] - [date]"
 
 Never leave uncommitted changes. Period. Either commit, stash, or intentionally discard them.
 
+**Step 2.1.5: Sync Fleet build queue (Fleet projects only)**
+
+If the project uses Fleet (`.fleet/BUILD_QUEUE.md` exists), reconcile the queue against merged PRs **before** writing the closeout commit. The closeout commit body summarizes queue state ("N merged this session, M still in_review, queue empty"), and a stale queue corrupts that summary and confuses the next restart.
+
+```bash
+if [ -f ".fleet/BUILD_QUEUE.md" ] && [ -f "scripts/sync-fleet-queue.mjs" ]; then
+  node scripts/sync-fleet-queue.mjs
+fi
+```
+
+The script is idempotent — running it on a clean queue is a no-op (exits 0, no file changes). If it produces changes, stage them into the closeout commit (or a preceding `chore(fleet): sync queue` commit if you want the sync change to be auditable on its own — preferred when multiple slices flipped status). The script writes the BUILD_QUEUE.md atomically via tmpfile + rename, so a partial run won't corrupt the file.
+
+If `.fleet/BUILD_QUEUE.md` exists but the script is missing, manually walk the queue and update any rows whose PR has merged since the last closeout (cross-check against `gh pr list --state merged --search "[FLEET] in:title" --limit 20`).
+
+Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher left 6 PRs in mixed `validated`/`flagged` states and the next session's closeout commit summarized them as "in flight" — but several had merged hours earlier. Running queue-sync at closeout (and again at restart, per [session-restart](../session-restart/SKILL.md)) catches this on both ends of the handoff.
+
 **Step 2.2: Conventional Commits audit (all session commits)**
 
 Before pushing, audit every commit made this session for Conventional Commits compliance. A single non-conforming commit will fail commitlint in CI and block the merge.
@@ -222,6 +238,50 @@ Categorize commits by Conventional Commits type:
 - Breaking changes (`!` or `BREAKING CHANGE:` footer) → flag prominently
 
 If the user declines, again record this as a skipped item in the closeout commit so restart surfaces it.
+
+### Phase 4.7: Fleet Template Backport Check (Fleet projects only)
+
+If this session modified Fleet's operational scripts or config (`.fleet/bin/*`, `.fleet/CONFIG.yaml`, `.fleet/SLICE_TEMPLATE.md`, or anything else under `.fleet/` that exists as a template), the same change probably needs to propagate into `.claude/skills/fleet-init/templates/` so future projects bootstrap with the fix. Otherwise the lesson stays local to the pilot and every new Fleet project re-discovers the same bug.
+
+```bash
+if [ -d ".fleet" ] && [ -d ".claude/skills/fleet-init/templates" ]; then
+  # What did this session touch under .fleet that has a template counterpart?
+  CHANGED_FLEET=$(git diff --name-only main..HEAD -- .fleet/bin .fleet/CONFIG.yaml .fleet/SLICE_TEMPLATE.md 2>/dev/null)
+
+  if [ -n "$CHANGED_FLEET" ]; then
+    echo "Fleet operational files modified this session:"
+    echo "$CHANGED_FLEET"
+    echo ""
+    echo "Checking drift against fleet-init templates:"
+    for f in $CHANGED_FLEET; do
+      REL=${f#.fleet/}
+      TEMPLATE_PATH=".claude/skills/fleet-init/templates/$REL"
+      if [ -f "$TEMPLATE_PATH" ]; then
+        if diff -q "$f" "$TEMPLATE_PATH" >/dev/null 2>&1; then
+          echo "  OK: $f matches template"
+        else
+          echo "  DRIFT: $f vs $TEMPLATE_PATH"
+        fi
+      else
+        echo "  (no template at $TEMPLATE_PATH — non-templated file, skip)"
+      fi
+    done
+  fi
+fi
+```
+
+If any line above says `DRIFT:`, prompt the user:
+
+> "This session changed Fleet config/scripts. The fleet-init templates would still bootstrap new projects with the OLD versions. Backport the changes now so future Fleet projects inherit the fix? Y/n"
+
+If yes:
+1. For each `DRIFT:` pair, copy the project's `.fleet/` file over the template counterpart (`cp .fleet/bin/foo.sh .claude/skills/fleet-init/templates/bin/foo.sh`).
+2. Re-run the diff check above to confirm parity.
+3. Commit as a separate `chore(skill): backport <description> to fleet-init templates` commit (don't bundle with the closeout commit — backports are easier to review and revert when isolated).
+
+If no, record the deferred backport in the closeout commit body under `## Template backports deferred:` so it surfaces on the next restart. Be specific: list the file paths and a one-line description of what the change does, so future-you doesn't have to re-derive the context.
+
+Reason this exists: Day-14 retro Decision 4 of the barrel-tracking pilot identified that operational Fleet fixes (like the `gtimeout` wall-clock cap added on Day 15) need to propagate into the bootstrap template, but the manual mirror step was easy to forget. The hdyw bootstrap on Day 14 inherited stale templates because the backport hadn't been done. Automating drift detection at closeout closes the gap before the next bootstrap.
 
 ### Phase 5: Update .claude/ Configuration
 
