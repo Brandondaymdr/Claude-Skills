@@ -121,6 +121,12 @@ if gtimeout "${timeout_min}m" "$builder_cli" \
 else
   exit_code=$?
   # gtimeout exits 124 when it kills the process due to wall-clock timeout
+  # Return to {{BASE_BRANCH}} BEFORE graveyarding so the queue edit can be
+  # committed there (see graveyard_slice). -f because a failed builder may
+  # leave the tree dirty; a plain checkout would die under set -e and wedge
+  # the clone.
+  git checkout -f {{BASE_BRANCH}} --quiet
+  git branch -D "$branch" --quiet 2>/dev/null || true
   if [ "$exit_code" = "124" ]; then
     log "builder killed by wall-clock timeout (${timeout_min}m)"
     graveyard_slice "$slice_id" "wall-clock timeout ${timeout_min}m" "$(tail -50 "$builder_err")"
@@ -128,8 +134,6 @@ else
     log "builder exited $exit_code"
     graveyard_slice "$slice_id" "builder exit $exit_code" "$(tail -50 "$builder_err")"
   fi
-  git checkout {{BASE_BRANCH}} --quiet
-  git branch -D "$branch" --quiet 2>/dev/null || true
   exit "$exit_code"
 fi
 
@@ -137,9 +141,9 @@ fi
 pr_url="$(gh pr list --head "$branch" --json url --jq '.[0].url' 2>/dev/null || echo "")"
 if [ -z "$pr_url" ]; then
   log "no PR opened by builder — graveyarding"
-  graveyard_slice "$slice_id" "builder did not open PR" "$(tail -50 "$builder_out")"
-  git checkout {{BASE_BRANCH}} --quiet 2>/dev/null || true
+  git checkout -f {{BASE_BRANCH}} --quiet 2>/dev/null || true
   git branch -D "$branch" --quiet 2>/dev/null || true
+  graveyard_slice "$slice_id" "builder did not open PR" "$(tail -50 "$builder_out")"
   exit 1
 fi
 

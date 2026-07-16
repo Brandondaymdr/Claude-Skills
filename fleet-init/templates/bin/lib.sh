@@ -139,6 +139,20 @@ graveyard_slice() {
   } >>"$GRAVEYARD_FILE"
   set_slice_status "$slice_id" "failed"
   log_metric "graveyard $slice_id — $reason"
+
+  # Persist the failed status to origin/{{BASE_BRANCH}}. An uncommitted
+  # BUILD_QUEUE.md edit leaves the clone dirty and wedges git_clean_workdir's
+  # --ff-only pull on every subsequent tick — a permanent, silent stall
+  # (source-project pilot audit finding). Only safe to commit from
+  # {{BASE_BRANCH}}; dispatcher.sh returns to {{BASE_BRANCH}} before calling
+  # this on its failure paths.
+  if [ "$(git -C "$REPO_ROOT" branch --show-current)" = "{{BASE_BRANCH}}" ]; then
+    git -C "$REPO_ROOT" add "$QUEUE_FILE"
+    git -C "$REPO_ROOT" commit -m "chore(fleet): graveyard $slice_id — $reason" --quiet || true
+    git -C "$REPO_ROOT" push origin {{BASE_BRANCH}} --quiet || log "warning: could not push graveyard status to {{BASE_BRANCH}}"
+  else
+    log "warning: graveyard_slice called off-{{BASE_BRANCH}} — BUILD_QUEUE.md edit left uncommitted"
+  fi
 }
 
 # ---------- Git helpers ----------
