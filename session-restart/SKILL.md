@@ -83,6 +83,22 @@ git log -1 --grep="chore(closeout)" --grep="closeout" --format="%B" 2>/dev/null
 
 If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, next session priorities, and discovered issues. This is gold — use it as the primary briefing source.
 
+#### Sync Fleet Build Queue (Fleet projects only)
+
+If the project uses Fleet (`.fleet/BUILD_QUEUE.md` exists), the queue may have drifted from reality if PRs merged between sessions — the dispatcher and validator update rows to `in_review` / `validated` / `flagged`, but the final `merged` flip is operator-owned and easily missed. Reconcile before the Phase 4 briefing so the "ready vs in-flight vs merged" counts you report are accurate.
+
+```bash
+if [ -f ".fleet/BUILD_QUEUE.md" ] && [ -f "scripts/sync-fleet-queue.mjs" ]; then
+  node scripts/sync-fleet-queue.mjs
+fi
+```
+
+The script reads merged PRs from GitHub (`gh pr list --state merged --search "[FLEET] in:title"`) and flips any `validated` / `flagged` / `in_review` slice rows whose corresponding PR is merged to status `merged`, filling in the PR URL. It's idempotent — a clean queue produces no output and no file changes. If it DID produce changes, the working tree is now dirty with a queue update — surface that in the Phase 4 briefing as a "queue drift detected — commit before starting new work" alert.
+
+If `.fleet/BUILD_QUEUE.md` exists but the script is missing (early-stage Fleet projects without the sync helper yet), fall back to manually skimming the queue for stale row statuses (anything not `merged`/`failed`/`done` is potentially live; cross-check against `gh pr list --state merged --search "[FLEET] in:title" --limit 20`).
+
+Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher run left 6 PRs in mixed `validated`/`flagged` states, the restart that followed read the queue uncritically, and the operator only noticed the drift mid-session. Adding queue sync as a pre-briefing step makes the briefing honest.
+
 #### Check Project Health
 
 ```bash
