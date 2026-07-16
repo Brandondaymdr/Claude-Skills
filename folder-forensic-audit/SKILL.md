@@ -527,6 +527,19 @@ Before writing anything:
    - **On a feature branch with clean tree:** ask the user — proceed on current branch (stack the conformance commits on top of in-progress work), or stash + switch to a fresh conformance branch. Document the choice in the eventual PR description.
    - **On `main` and the conformance branch already exists from a previous attempt:** switch to it and continue; do not create a duplicate.
 
+6. **Tool availability for remote-state fixes.** Some fixes touch remote state instead of files (`branch-protection` is the current example — see the fix matrix). Probe for the tooling each one needs before the run starts:
+
+   ```bash
+   # branch-protection needs an authenticated gh CLI (or equivalent API access)
+   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+     echo "gh available — remote-state fixes eligible"
+   else
+     echo "gh unavailable — remote-state fixes downgraded to Category C"
+   fi
+   ```
+
+   If the tooling is absent, **auto-downgrade the affected fixes to Category C** — don't attempt them, don't error mid-run. The run report and PR description list each downgraded fix with the exact manual command the user can run themselves (for `branch-protection`, the full `gh api -X PUT repos/.../branches/main/protection ...` invocation from the fix matrix). A downgraded fix is not a skipped fix: it still appears in the report, just moved to the manual column with its command attached.
+
 ### Naming variants
 
 Real projects use legitimate alternates of canonical names. The skill recognizes these as **already present** — it does not try to create a duplicate, and it does not propose a rename unless the user explicitly asks for one (rename is Category C).
@@ -542,6 +555,15 @@ Real projects use legitimate alternates of canonical names. The skill recognizes
 If a variant is detected, the conformance run report includes a line under "Naming variants observed" so the user sees the divergence. Renames are surfaced as Category C — never auto-applied.
 
 **Sub-file targeting.** When a directory-level variant is detected (e.g. `docs/adr/`), subsequent fixes that target files inside the canonical directory (e.g. `docs/decisions/0000-template.md`) target the **variant directory** instead (e.g. `docs/adr/0000-template.md`). Otherwise variant recognition is meaningless — the canonical directory would be created next to the variant and the ADR template would land in the wrong place.
+
+**ADR template format derivation.** Whenever the target decisions directory (canonical or variant) already contains one or more real ADRs, the `adr-template` fix does **not** use the canonical inline template. Instead it derives `0000-template.md` from the project's own ADRs:
+
+1. Pick the most recently modified ADR file (excluding any existing `0000-template.md` and the index) as the format exemplar.
+2. Copy its header structure exactly — heading style, metadata layout (`Date:` / `Status:` prose lines vs. a metadata table vs. YAML frontmatter), and section order.
+3. Blank the values: replace the title with `[short noun phrase describing the decision]`, dates with `YYYY-MM-DD`, status with the project's own status vocabulary (use whatever word the exemplar uses for "accepted"), and section bodies with one-line placeholders.
+4. Note in the run report which file served as the exemplar: `"adr-template derived from docs/adr/0007-*.md (metadata-table style)"`.
+
+The canonical inline template is used only when the directory is empty or being created by this run. A template that visibly mismatches the project's existing ADRs is worse than no template — the next author will copy a real ADR anyway and the template rots.
 
 ### The fix matrix
 
@@ -582,7 +604,15 @@ Each Category B fix lands as its own commit:
 chore(conformance): update <file> — <what changed>
 ```
 
-**CLAUDE.md size handling.** Backfilling the 7 non-negotiable rules section adds ~30 lines. If applying that fix pushes `CLAUDE.md` over the 200-line guideline (from `project-kickoff`), the rules section still goes in — it's non-negotiable — but the run report surfaces a Category C follow-up: `"CLAUDE.md is now <N> lines (over 200). Extract gotchas, architecture detail, or convention prose to docs/ or .claude/rules/. Do NOT drop the rules section."` Never silently skip the rules to stay under the limit; the rules are higher-priority than the line count.
+**CLAUDE.md rules backfill is diff-aware.** Before inserting the 7-rules section, scan the existing `CLAUDE.md` for each rule already documented elsewhere — projects often cover some of them under headings like "Tooling", "Hard conventions", or "Git workflow". For each of the 7 rules, search for its signature concepts (e.g. rule "Conventional Commits" → `commitlint`, `conventional commit`; rule "never commit to main" → `branch protection`, `feature branch`, `direct to main`; rule "PR cool-down" → `cool-down`, `10 minute`). Then:
+
+- **No rules found:** insert the canonical section verbatim (the common case).
+- **Some rules found:** insert the section, but for each already-covered rule replace its body with a pointer line — `N. **<rule name>** — see "<existing section heading>" below.` — keeping full text only for rules the file doesn't cover. The section must still enumerate all 7 so the contract is visible in one place; the pointers avoid stating one rule two ways that can drift apart.
+- **All 7 found:** skip the insertion entirely and note in the run report: `"claude-md-rules skipped — all 7 rules already documented (sections: <list>)"`.
+
+Since this is Category B, the diff preview shows exactly which rules got pointers vs. full text — the user confirms the classification before it lands. When in doubt about whether an existing passage really covers a rule (e.g. it mentions commits but not enforcement), treat the rule as missing and insert the full text; a duplicate is cheaper than a silently weakened contract.
+
+**CLAUDE.md size handling.** Backfilling the 7 non-negotiable rules section adds ~30 lines. If applying that fix pushes `CLAUDE.md` over the 200-line guideline (from `project-kickoff`), the rules section still goes in — it's non-negotiable — but the run report surfaces a Category C follow-up: `"CLAUDE.md is now <N> lines (over 200). Extract gotchas, architecture detail, or convention prose to docs/ or .claude/rules/. Do NOT drop the rules section."` Never silently skip the rules to stay under the limit; the rules are higher-priority than the line count. The diff-aware pointer style above is also the primary tool for keeping the addition small in already-large files.
 
 #### Category C — Never auto-apply (manual follow-up)
 
@@ -597,6 +627,7 @@ Surfaced in the report and the final PR description, but never executed:
 - Resolve uncommitted changes (must be done before conformance starts)
 - Trim oversized `CLAUDE.md` after a backfill push it over 200 lines (see Category B note above)
 - Install missing fix prerequisites (see "Fix prerequisites" below)
+- Remote-state fixes whose tooling is absent — auto-downgraded here by pre-flight check 6, listed with the exact manual command
 
 #### Fix prerequisites
 
@@ -702,15 +733,9 @@ Format: each `<fix-id>` must match an ID from `references/conformance-fix-matrix
 
 ### Known limitations and manual workarounds
 
-The conformance flow works end-to-end for the common case but has three gaps that today require manual judgment. Each is a candidate for a future skill patch.
+None currently open. The three gaps recorded here after the shorestack test run (2026-05-23) were patched into the sections above on 2026-07-16: append-only CLAUDE.md backfill → "CLAUDE.md rules backfill is diff-aware" (Category B); ADR template format mismatch → "ADR template format derivation" (Naming variants); remote-state tool availability → pre-flight check 6.
 
-1. **CLAUDE.md backfill is append-only, not diff-aware.** The `claude-md-rules` fix mechanically inserts the 7-rules section even if some rules are already documented elsewhere in the project's CLAUDE.md (e.g., "Conventional Commits" might already appear under a "Tooling" or "Hard conventions" section). Today the human running conformance should tailor the backfill manually — point at existing sections via the same pointer style as the canonical insertion, rather than duplicating enforcement. Surface as Category C in the run report if duplication is detected.
-
-2. **ADR template doesn't auto-match the existing project format.** When `docs/adr/` is recognized as the `docs/decisions/` variant, the `adr-template` fix still uses the canonical inline template (`Date:` / `Status:` lines). Real projects often use a metadata-table style header instead, and a new `0000-template.md` in the canonical format will be visibly inconsistent with `0001-NNNN` files. Today the runner should derive the template from an existing accepted ADR's header format. Surface as Category C if format mismatch is detected.
-
-3. **Remote-state fixes don't check tool availability.** `branch-protection` requires either `gh` CLI access or direct GitHub API permissions. When neither is present (e.g. a restricted execution environment, or a session without GitHub MCP), the fix silently fails or errors. Today the runner should check tool availability in pre-flight and surface unavailable remote-state fixes as Category C automatically with the manual `gh api` command users can run themselves.
-
-These are recorded here so they don't get lost between conformance runs. When patching, update the relevant section above and remove the entry from this list.
+When a new gap is discovered mid-run, record it here so it doesn't get lost between conformance runs. When patching, update the relevant section above and remove the entry from this list.
 
 ## Cowork Mode Adaptations
 

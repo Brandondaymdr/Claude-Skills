@@ -51,7 +51,7 @@ These fixes **only create files that don't exist** (including variants per the t
 | `dependabot` | `.github/dependabot.yml` | `DEFAULTS-ADR-0001.md` §10 |
 | `pr-template` | `.github/pull_request_template.md` | `project-kickoff/SKILL.md` Step 6 Layer 5 |
 | `env-example-stub` | `.env.example` | Inline below |
-| `adr-template` | `docs/decisions/0000-template.md` | Inline below |
+| `adr-template` | `docs/decisions/0000-template.md` | Inline below when the decisions dir is empty/new; derived from the project's most recent existing ADR otherwise (see "ADR template format derivation" in SKILL.md) |
 | `decisions-index` | `docs/decisions/DECISIONS.md` | Inline below |
 | `changelog` | `CHANGELOG.md` | Inline below |
 | `contributing` | `CONTRIBUTING.md` | Inline below |
@@ -65,7 +65,7 @@ These fixes **modify existing files**. Show a diff preview and require user conf
 
 | Fix ID | Target | What it adds / changes |
 |---|---|---|
-| `claude-md-rules` | `CLAUDE.md` | The 7 non-negotiable workflow rules section (from `project-kickoff/SKILL.md` Step 3 template) |
+| `claude-md-rules` | `CLAUDE.md` | The 7 non-negotiable workflow rules section (from `project-kickoff/SKILL.md` Step 3 template); diff-aware — rules already documented in the file become pointer lines, and the fix is skipped when all 7 are covered (see "CLAUDE.md rules backfill is diff-aware" in SKILL.md) |
 | `claude-md-verify` | `CLAUDE.md` | The verification commands section, if missing |
 | `claude-md-skills-refs` | `CLAUDE.md` | The "Skills & References" footer, if missing |
 | `husky-hook-append` | `.husky/<hook>` | Append missing entries to existing hook file with comment marker |
@@ -73,7 +73,7 @@ These fixes **modify existing files**. Show a diff preview and require user conf
 | `ci-gitleaks` | `.github/workflows/ci.yml` | gitleaks scan step in the verify job, if missing |
 | `package-scripts` | `package.json` | `lint`, `typecheck`, `test`, `build` scripts, if missing |
 | `package-manager-field` | `package.json` | `"packageManager": "pnpm@<version>"` field per DEFAULTS-ADR-0001 §1 |
-| `branch-protection` | GitHub API (no file commit) | Enable required PR + required status checks on `main` |
+| `branch-protection` | GitHub API (no file commit) | Enable required PR + required status checks on `main`. Requires an authenticated `gh` CLI — pre-flight check 6 probes for it and auto-downgrades this fix to Category C (with the manual `gh api` command) when absent |
 | `gitignore-entries` | `.gitignore` | `.env`, `node_modules`, `.DS_Store`, `dist`, `build`, `.next`, `coverage` if missing |
 
 ## Category C — Never auto-apply (surface in PR description only)
