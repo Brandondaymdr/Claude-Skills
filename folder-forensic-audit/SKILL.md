@@ -297,8 +297,9 @@ pnpm outdated 2>/dev/null | head -20
 
 # Check for security vulnerabilities.
 # NOTE: npm retired the legacy audit endpoints (2026-07). `pnpm audit` on pnpm ≤10
-# returns HTTP 410 — that's plumbing, not a CVE. Run the audit through pnpm ≥11
-# (e.g. `pnpm dlx pnpm@11 audit --prod`) or an OSV-based scanner instead.
+# MAY fail with HTTP 410 (observed intermittently; CI environments hit it most —
+# a successful local run doesn't disprove it). A 410 is plumbing, not a CVE: rerun
+# through pnpm ≥11 (e.g. `pnpm dlx pnpm@11 audit --prod`) or an OSV-based scanner.
 pnpm audit 2>&1 | tail -10
 
 # Check for large files that shouldn't be committed
@@ -376,10 +377,15 @@ done | head -10
 git status --porcelain | head -20
 [ -f ".gitignore" ] && echo ".gitignore exists" || echo "MISSING .gitignore"
 
-# Conventional Commits compliance (last 50 commits)
-CC_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|wip|build|ci|revert)(\([a-z0-9-]+\))?!?: .{1,}$'
-TOTAL_50=$(git log --format=%s -50 | wc -l | tr -d ' ')
-CONFORMING_50=$(git log --format=%s -50 | grep -cE "$CC_REGEX")
+# Conventional Commits compliance (last 50 first-parent, non-merge commits).
+# --first-parent --no-merges matters: merge commits are structural (absorb/subtree
+# PRs merge with --merge by design), and subtree-absorbed history isn't this repo's
+# commit discipline — without the flags one absorb poisons the number (observed:
+# 62% raw vs 100% real on a repo with a single absorbed app).
+# Scope class allows commas/dots/slashes — multi-scope commits are legal commitlint.
+CC_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|wip|build|ci|revert)(\([a-z0-9,/. -]+\))?!?: .{1,}$'
+TOTAL_50=$(git log --first-parent --no-merges --format=%s -50 | wc -l | tr -d ' ')
+CONFORMING_50=$(git log --first-parent --no-merges --format=%s -50 | grep -cE "$CC_REGEX")
 echo "Conventional Commits compliance (last 50): $CONFORMING_50 / $TOTAL_50"
 CC_PCT=$(( (CONFORMING_50 * 100) / (TOTAL_50 > 0 ? TOTAL_50 : 1) ))
 echo "Compliance percentage: ${CC_PCT}%"
