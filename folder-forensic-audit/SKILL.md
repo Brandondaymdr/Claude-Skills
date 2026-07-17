@@ -50,9 +50,7 @@ Agents:
 └── git-auditor          — Git history, branches, stashes, commit quality
 ```
 
-See `agents/` directory for subagent definitions. To spawn the team:
-
-"Create an agent team to audit this project. Spawn 5 auditors: structure, docs, config, code-health, and git. Each should investigate their domain and report findings with severity ratings. Synthesize into a single report when done."
+See `agents/` directory for subagent definitions. Note these files are prompt definitions local to this skill — they are **not** auto-registered agent types (only `.claude/agents/` is). Spawn each auditor as a general-purpose agent, passing the definition file's body as its prompt, and synthesize the five reports into one. In sessions where the Workflow tool is available, the auditors can instead run as a single parallel workflow — but only with the user's explicit opt-in to multi-agent orchestration.
 
 ## The Audit Phases
 
@@ -104,8 +102,8 @@ Evaluate all project documentation for completeness, accuracy, and freshness.
 # How long is it?
 wc -l CLAUDE.md 2>/dev/null
 
-# Does it reference files that exist?
-grep -oP '@\S+' CLAUDE.md 2>/dev/null | while read f; do
+# Does it reference files that exist? (-o with a POSIX class — BSD grep has no -P)
+grep -o '@[^[:space:]]*' CLAUDE.md 2>/dev/null | while read f; do
   [ ! -f "${f#@}" ] && echo "BROKEN REFERENCE: $f"
 done
 
@@ -153,7 +151,9 @@ PROJECT_AGE_DAYS=$(( ($(date +%s) - $(git log --reverse --format=%ct | head -1))
 # Is there a DECISIONS.md index?
 [ -f "docs/decisions/DECISIONS.md" ] && echo "INDEX EXISTS" || echo "INDEX MISSING"
 
-# Every major (non-dev) dependency should have a corresponding ADR
+# Major (non-dev) dependencies should have a corresponding ADR. Apply judgment to
+# the output: frameworks, databases, auth, and infra choices need ADRs — utility
+# libraries (zod, clsx, date-fns) do not. Report the architectural hits only.
 if [ -f "package.json" ]; then
   jq -r '.dependencies | keys[]' package.json 2>/dev/null | while read dep; do
     grep -riq "$dep" docs/decisions/ 2>/dev/null || echo "MISSING ADR FOR DEP: $dep"
@@ -183,8 +183,9 @@ echo "CHANGELOG last updated $DAYS_SINCE days ago"
 # Does it have an [Unreleased] section?
 grep -q '^## \[Unreleased\]' CHANGELOG.md && echo "UNRELEASED SECTION PRESENT" || echo "NO UNRELEASED SECTION"
 
-# How many entries are in Unreleased?
-awk '/^## \[Unreleased\]/,/^## \[/' CHANGELOG.md | grep -cE '^- '
+# How many entries are in Unreleased? (flag scan — a /start/,/end/ range would
+# close on the header line itself, since it matches both patterns, and always count 0)
+awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' CHANGELOG.md | grep -cE '^- '
 ```
 
 | Finding | Severity | Description |
@@ -278,9 +279,9 @@ SOURCE_FILE_COUNT=$(find src -name "*.ts" -o -name "*.tsx" -o -name "*.js" 2>/de
 # Run tests with coverage
 pnpm test -- --coverage 2>&1 | tail -30 || npm run test -- --coverage 2>&1 | tail -30
 
-# Extract coverage percentage (Vitest/Istanbul format)
-COVERAGE_PCT=$(pnpm test -- --coverage --reporter=json 2>/dev/null | jq -r '.coverageMap | ... ' 2>/dev/null || echo "UNKNOWN")
-echo "Coverage: $COVERAGE_PCT"
+# Extract coverage % from the Istanbul text summary ("All files" row, statements column)
+COVERAGE_PCT=$(pnpm test -- --coverage 2>/dev/null | grep -E '^All files' | awk -F'|' '{gsub(/ /,"",$2); print $2}')
+echo "Coverage (statements %): ${COVERAGE_PCT:-UNKNOWN}"
 
 # Check linting
 pnpm lint 2>&1 | tail -20
@@ -294,8 +295,11 @@ pnpm build 2>&1 | tail -20
 # Check dependencies
 pnpm outdated 2>/dev/null | head -20
 
-# Check for security vulnerabilities
-pnpm audit 2>/dev/null | tail -10
+# Check for security vulnerabilities.
+# NOTE: npm retired the legacy audit endpoints (2026-07). `pnpm audit` on pnpm ≤10
+# returns HTTP 410 — that's plumbing, not a CVE. Run the audit through pnpm ≥11
+# (e.g. `pnpm dlx pnpm@11 audit --prod`) or an OSV-based scanner instead.
+pnpm audit 2>&1 | tail -10
 
 # Check for large files that shouldn't be committed
 find . -size +5M -not -path "./.git/*" -not -path "./node_modules/*" | head -10
@@ -317,7 +321,8 @@ if [ "$IS_AI_PROJECT" = "true" ]; then
 fi
 
 # gitleaks scan (in addition to grep-based secret check)
-gitleaks detect --no-git --verbose 2>&1 | tail -10 || echo "gitleaks not installed — recommend adding"
+# `gitleaks dir` is the v8.19+ form; `detect --no-git` is its deprecated alias
+gitleaks dir . --verbose 2>&1 | tail -10 || echo "gitleaks not installed — recommend adding"
 ```
 
 **Evaluation criteria:**
@@ -342,6 +347,7 @@ gitleaks detect --no-git --verbose 2>&1 | tail -10 || echo "gitleaks not install
 | `/evals/history/` empty on AI-featured project | Medium | Evals have never been run and committed |
 | gitleaks not installed / not in CI | High | Secret leak risk not mitigated |
 | gitleaks finds matches | Critical | Potential credential exposure — investigate immediately |
+| `pnpm audit` returns HTTP 410 | Low | Legacy npm audit endpoint retired (2026-07) — tooling gap, not a vulnerability; audit via pnpm ≥11 |
 
 ### Phase 5: Git Health Audit
 
@@ -360,8 +366,11 @@ git stash list
 # Commit message quality (recent 20)
 git log --oneline -20
 
-# Check for large commits
-git log --oneline --diff-filter=A --numstat | awk '{if ($1 > 500) print}' | head -10
+# Check for large commits (>500 lines added across all files, last 50 commits)
+git log -50 --format='%h' | while read h; do
+  ADDED=$(git show --numstat --format= "$h" | awk '{s+=$1} END {print s+0}')
+  [ "$ADDED" -gt 500 ] && echo "$h: +$ADDED lines"
+done | head -10
 
 # Check .gitignore coverage
 git status --porcelain | head -20
@@ -386,16 +395,17 @@ gh api repos/:owner/:repo/branches/main/protection 2>/dev/null | jq -r '{
   required_checks: (.required_status_checks.contexts // [])
 }' || echo "NO BRANCH PROTECTION on main"
 
-# Direct-to-main commits in last 30 days (should be 0 under the workflow)
-DIRECT_COMMITS=$(git log --first-parent main --no-merges --since="30 days ago" --format=%H | while read sha; do
-  # A commit is "direct" if it has no parent merge commit linking it to a PR
-  PARENT_IS_MERGE=$(git log -1 --format=%P "$sha" | awk '{print NF}')
-  [ "$PARENT_IS_MERGE" = "1" ] && echo "$sha"
-done | wc -l | tr -d ' ')
-echo "Direct-to-main commits (last 30d): $DIRECT_COMMITS"
+# Direct-to-main candidates, last 30 days (should be 0 under the workflow).
+# --no-merges drops merge commits; squash-merged PRs carry GitHub's "(#N)" subject
+# suffix. What's left is a CANDIDATE — rebase-merge workflows produce PR commits
+# without the suffix, so verify each hit before flagging:
+#   gh api "repos/{owner}/{repo}/commits/<sha>/pulls"   (empty array = truly direct)
+git log --first-parent main --no-merges --since="30 days ago" --format='%h %s' \
+  | grep -vE '\(#[0-9]+\)$' || echo "(none)"
 
 # gitleaks scan of full history (catches secrets committed previously)
-gitleaks detect --verbose --redact 2>&1 | tail -15 || echo "gitleaks not installed — install for history scan"
+# `gitleaks git` is the v8.19+ form; bare `detect` is its deprecated alias
+gitleaks git . --verbose --redact 2>&1 | tail -15 || echo "gitleaks not installed — install for history scan"
 ```
 
 **Evaluation criteria:**
@@ -415,7 +425,7 @@ gitleaks detect --verbose --redact 2>&1 | tail -15 || echo "gitleaks not install
 | Branch protection not enabled on main | High | Nothing stopping direct-to-main commits |
 | Branch protection does not require PR | High | Workflow rule "no direct commits to main" is unenforced |
 | Branch protection does not require status checks | High | CI can be bypassed |
-| Direct-to-main commits in last 30 days | High (Tier 1) / Medium (Tier 2) | Workflow discipline broken |
+| Verified direct-to-main commits in last 30 days | High (Tier 1) / Medium (Tier 2) | Workflow discipline broken — verify candidates via `gh api .../pulls` before flagging |
 
 ## Producing the Audit Report
 
