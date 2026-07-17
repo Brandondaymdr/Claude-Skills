@@ -42,34 +42,38 @@ Controls what Claude can and cannot do. Commit this to git so the whole team sha
 
 ### Basic Structure
 
+All permission lists nest under a `"permissions"` object — top-level `"allow"`/`"deny"` keys are silently ignored.
+
 ```json
 {
-  "$schema": "https://claude.ai/schemas/claude-settings.json",
-  "allow": [
-    "Bash(npm run *)",
-    "Bash(npx *)",
-    "Bash(git add *)",
-    "Bash(git commit *)",
-    "Bash(git push *)",
-    "Bash(git diff *)",
-    "Bash(git log *)",
-    "Bash(git status)",
-    "Bash(git branch *)",
-    "Bash(git checkout *)",
-    "Bash(cat *)",
-    "Bash(ls *)",
-    "Bash(mkdir *)",
-    "Read",
-    "Write",
-    "Edit",
-    "Glob",
-    "Grep"
-  ],
-  "deny": [
-    "Bash(rm -rf /)",
-    "Bash(rm -rf ~)",
-    "Bash(: > .env)"
-  ]
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(: > .env)"
+    ]
+  }
 }
 ```
 
@@ -86,9 +90,11 @@ For personal preferences that shouldn't be shared with the team. Gitignored by d
 
 ```json
 {
-  "allow": [
-    "Bash(my-custom-tool *)"
-  ]
+  "permissions": {
+    "allow": [
+      "Bash(my-custom-tool *)"
+    ]
+  }
 }
 ```
 
@@ -96,7 +102,7 @@ For personal preferences that shouldn't be shared with the team. Gitignored by d
 
 ## commands/
 
-Each markdown file in `commands/` becomes a slash command. The filename (minus `.md`) is the command name, prefixed with `/project:`.
+Each markdown file in `commands/` becomes a slash command. The filename (minus `.md`) is the command name — `commands/dev.md` is invoked as `/dev`. (Project commands are marked "(project)" in the command picker; there is no `/project:` prefix.)
 
 ### Command Structure
 
@@ -112,7 +118,7 @@ Run these commands to set up and start the dev server:
 Report the URL and confirm the server is running.
 ```
 
-Invoke with: `/project:dev`
+Invoke with: `/dev`
 
 ### Using Arguments
 
@@ -132,7 +138,7 @@ If no arguments, run the full test suite:
 Report results including pass/fail counts.
 ```
 
-Invoke with: `/project:test auth` or `/project:test` (runs all)
+Invoke with: `/test auth` or `/test` (runs all)
 
 ### Useful Starter Commands
 
@@ -335,7 +341,7 @@ Rate each finding: critical, warning, or suggestion.
 ---
 name: researcher
 description: Investigates the codebase to answer questions without modifying files
-tools: Read, Grep, Glob, Bash(git log *), Bash(git blame *)
+tools: Read, Grep, Glob, Bash
 model: haiku
 ---
 
@@ -349,6 +355,8 @@ You are a codebase research assistant. Your job is to:
 Never modify files. Report findings clearly with file paths and line numbers.
 ```
 
+Note: the `tools:` field accepts bare tool names only — permission patterns like `Bash(git log *)` are not valid there. Constrain Bash usage through the agent's prompt (as above) and through `permissions` in `settings.json`.
+
 ---
 
 ## Hooks
@@ -359,22 +367,29 @@ Hooks are configured in `settings.json` and run deterministic scripts at specifi
 
 | Hook | When it fires | Common use |
 |---|---|---|
-| `PreToolExecution` | Before a tool runs | Block dangerous operations |
-| `PostToolExecution` | After a tool runs | Lint after edits, format code |
+| `PreToolUse` | Before a tool runs | Block dangerous operations |
+| `PostToolUse` | After a tool runs | Lint after edits, format code |
 | `SessionStart` | Session begins | Environment checks, setup |
 | `SessionEnd` | Session ends | Cleanup, logging |
-| `PromptSubmit` | Before prompt processes | Input validation |
-| `Compact` | During context compaction | Preserve critical info |
+| `UserPromptSubmit` | Before prompt processes | Input validation |
+| `PreCompact` | Before context compaction | Preserve critical info |
 
 ### Example: Lint After Edits
+
+Each matcher entry requires a nested `"hooks"` array of `{"type": "command", ...}` handlers — a bare `"command"` key directly on the matcher object is ignored.
 
 ```json
 {
   "hooks": {
-    "PostToolExecution": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "npm run lint:fix -- --quiet 2>&1 | tail -5"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint:fix -- --quiet 2>&1 | tail -5"
+          }
+        ]
       }
     ]
   }
@@ -386,10 +401,15 @@ Hooks are configured in `settings.json` and run deterministic scripts at specifi
 ```json
 {
   "hooks": {
-    "PreToolExecution": [
+    "PreToolUse": [
       {
         "matcher": "Write|Edit",
-        "command": "echo $TOOL_INPUT | grep -q '\\.env' && echo 'BLOCKED: Cannot modify .env files' && exit 1 || exit 0"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo $TOOL_INPUT | grep -q '\\.env' && echo 'BLOCKED: Cannot modify .env files' && exit 1 || exit 0"
+          }
+        ]
       }
     ]
   }
@@ -401,10 +421,15 @@ Hooks are configured in `settings.json` and run deterministic scripts at specifi
 ```json
 {
   "hooks": {
-    "PostToolExecution": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "npx tsc --noEmit 2>&1 | tail -10"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit 2>&1 | tail -10"
+          }
+        ]
       }
     ]
   }

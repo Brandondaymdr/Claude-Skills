@@ -203,6 +203,18 @@ Content covered in a separate file.
 - Per-project flexibility on tooling choices. This is actually a win for a solo developer with 25+ projects — consistency beats local optimization.
 - Bun, Deno, and other shinier ecosystems. Revisit in 12 months.
 
+## Appendix: Project tier rubric
+
+Referenced by `/project-kickoff` (Phase 1 question 11) and `/folder-forensic-audit` (conformance gating). A project's tier is recorded in `.claude/tier` at kickoff.
+
+| Tier | Definition | Qualifies if ANY of these are true | Scaffolding |
+|---|---|---|---|
+| **1** | Production / money-touching | Handles money, payroll, or billing; external users or clients depend on it; breakage costs money or trust (e.g., Harper payroll, client apps, anything with paying users) | Full template: CI, tests, Husky/commitlint, ADRs, CHANGELOG, gitleaks, Dependabot, Sentry + PostHog (Decision 12) |
+| **2** | Internal tools | Used regularly, but only by me or a small internal team; breakage is an inconvenience, not a cost; no external users, no money flows | Full template minus observability; ADRs optional (opt-in at kickoff) |
+| **3** | Experiment | Spike, prototype, learning exercise, or archived work; may be abandoned without ceremony | `STATUS.md` only — no CLAUDE.md, no tests, no CI. Graduate to Tier 2 before investing further |
+
+Tie-breakers: if unsure between 1 and 2, ask "does anyone outside the company notice if this breaks for a day?" — yes means Tier 1. If unsure between 2 and 3, ask "will this still be in use in a month?" — yes means Tier 2. Tier changes are allowed; update `.claude/tier` and scaffold the delta (folder-forensic-audit Conformance Mode does this).
+
 ## Revisit triggers
 
 Supersede this ADR if:

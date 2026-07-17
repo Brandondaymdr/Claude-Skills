@@ -57,7 +57,7 @@ Quick-reference checklist for project initialization. Use this as a final pass t
 - [ ] Type checking enabled (TypeScript strict, mypy, etc.)
 - [ ] Test framework set up with at least one passing test
 - [ ] Build command works successfully
-- [ ] Hooks configured for automated verification (PostToolExecution lint/typecheck)
+- [ ] Hooks configured for automated verification (PostToolUse lint/typecheck)
 
 ## Documentation
 

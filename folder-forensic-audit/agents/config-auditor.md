@@ -39,7 +39,7 @@ You are a Claude Code configuration auditor. Your job is to evaluate the .claude
 
 ### hooks
 1. Are hooks configured in settings.json?
-2. Is there a PostToolExecution hook for linting/type-checking?
+2. Is there a PostToolUse hook for linting/type-checking?
 3. Are hooks fast (under 5 seconds)?
 4. Do hooks produce concise output?
 

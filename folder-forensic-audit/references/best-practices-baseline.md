@@ -95,7 +95,7 @@ Above well-configured, plus:
 - Appropriate model selection (haiku for fast tasks, sonnet/opus for complex)
 
 ### hooks
-- PostToolExecution lint/format after Edit/Write
+- PostToolUse lint/format after Edit/Write
 - Keep hooks fast (under 5 seconds)
 - Concise output (pipe through `tail` or `head`)
 
