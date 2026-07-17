@@ -38,6 +38,16 @@ git status
 git diff --stat
 ```
 
+**Branch guard:** check `git branch --show-current` before committing. If you're on `main` (or `master`), don't checkpoint onto it — the never-commit-to-main rule applies to WIP too, and mid-experiment is exactly when you're likely to still be on trunk. Move the checkpoint to a branch first:
+
+```bash
+git switch -c wip/<topic>
+```
+
+Uncommitted changes come along with the branch switch, so nothing is lost. Only commit directly to `main` if the user explicitly confirms that's what they want.
+
+**Staging guard:** before `git add -A`, skim the untracked files in `git status` for anything that shouldn't land — `.env*` files, credentials, build output, large scratch junk. `git add -A` takes everything that isn't gitignored; a quick save is not an excuse to commit a secret. (Conformant repos have a gitleaks pre-commit hook as a backstop — don't rely on it.)
+
 The checkpoint commit **must** follow Conventional Commits format — every commit does, no exceptions, per the project's non-negotiable rules. Legacy `checkpoint: ...` messages are no longer valid. Use `wip(scope):` for work-in-progress or `chore(scope):` for tooling/maintenance checkpoints.
 
 **Pre-commit verification:** before running `git commit`, check the user's intended message against the Conventional Commits regex:
@@ -103,7 +113,7 @@ checkpoint: saving               → blocked
 saving auth stuff                → rewritten to "wip(auth): saving auth stuff" + prompt for better body
 ```
 
-**If commitlint is installed (recommended, per DEFAULTS-ADR-0001):** the `.husky/commit-msg` hook will reject non-conforming messages before they land. The checkpoint flow should never need to override that — if commitlint rejects the message, the checkpoint flow rewrites it and retries, it does not bypass the hook.
+**If commitlint is installed (recommended, per DEFAULTS-ADR-0001):** the `.husky/commit-msg` hook will reject non-conforming messages before they land. Note that stock `@commitlint/config-conventional` does **not** include `wip` in its `type-enum` — conformant repos extend the type list in `commitlint.config.js` (see `DEFAULTS-ADR-0001.md` Decision 4 and `../project-kickoff/SKILL.md`). If the repo you're in hasn't extended it, use `chore(scope):` for the checkpoint instead and lead the body's State line with `WIP —` so it's still recognizable as work-in-progress. Either way: if commitlint rejects a message, the checkpoint flow rewrites it and retries — it never bypasses the hook with `--no-verify`.
 
 ### Step 2: Annotate CLAUDE.md (If Needed)
 
@@ -140,10 +150,10 @@ This section gets removed during the next closeout but keeps critical context al
 If even 60 seconds is too much, the absolute minimum checkpoint is:
 
 ```bash
-git add -A && git commit -m "checkpoint: [one-line status]"
+git add -A && git commit -m "wip: [one-line status]"
 ```
 
-One command. That's it. Even this is infinitely better than uncommitted work floating in a dirty tree when context compacts or a session ends unexpectedly.
+One command. That's it. Still valid Conventional Commits (scope is optional) and still discoverable by session-restart's WIP search (`--grep="^wip:"`). Even this is infinitely better than uncommitted work floating in a dirty tree when context compacts or a session ends unexpectedly.
 
 ## Checkpoint vs. Closeout vs. Restart
 
