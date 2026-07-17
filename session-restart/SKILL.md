@@ -59,15 +59,27 @@ git status
 # Any stashed work?
 git stash list
 
-# What changed in the last session? (look for closeout commits)
+# What changed in the last session? (widen --since to cover the actual gap since last session)
 git log --oneline --since="3 days ago"
 
 # Check for WIP commits (Conventional Commits format: wip(scope): ...)
 git log --oneline --all --grep="^wip(" --grep="^wip:" | head -5
-
-# Any remote changes to pull?
-git fetch --dry-run 2>&1
 ```
+
+#### Sync With Remote
+
+Do a REAL fetch, not `--dry-run`. A dry run never updates the `origin/*` remote-tracking refs, so every later `HEAD..origin/<branch>` comparison would silently compare against stale refs and report "no remote changes" on a clone that's months behind. Multi-machine clones make this the single most dangerous restart failure — one clone in this skill's own family ran 2 months stale because restarts only ever dry-ran the fetch.
+
+```bash
+git fetch origin
+
+# How far ahead/behind is this clone? Prints "<behind>	<ahead>"
+git rev-list --left-right --count @{u}...HEAD 2>/dev/null
+```
+
+- **Behind + clean working tree:** `git pull --ff-only` before doing anything else, then continue recon on the updated tree.
+- **Behind + dirty tree (or diverged):** do NOT pull. Surface it at the top of the Phase 4 briefing and resolve with the user (see "Diverged Branch" below).
+- **Ahead:** last session ended without pushing — flag it; unpushed commits exist on this machine only.
 
 #### Check for Closeout Artifacts
 
@@ -75,10 +87,14 @@ If the `session-closeout` skill was used, look for its traces:
 
 ```bash
 # Look for the most recent closeout commit (Conventional Commits format: chore(closeout): ...)
-git log --oneline --all --grep="chore(closeout)" --grep="closeout" | head -3
+git log --oneline --all --grep="chore(closeout)" | head -3
 
 # Read the closeout commit's full message for session summary
-git log -1 --grep="chore(closeout)" --grep="closeout" --format="%B" 2>/dev/null
+git log --all -1 --grep="chore(closeout)" --format="%B" 2>/dev/null
+
+# Fallback only if nothing matched — bare "closeout" false-positives on any
+# commit that merely mentions the word, so eyeball the results
+git log --oneline --all --grep="closeout" | head -3
 ```
 
 If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, next session priorities, and discovered issues. This is gold — use it as the primary briefing source.
@@ -101,6 +117,8 @@ Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher
 
 #### Check Project Health
 
+Scale this to time away: after a same-day return, skim; after a week or more, run the full test/build/lint baseline. Skip checks that don't apply to the project (no dependencies, no build, no CI) rather than reporting rows of N/A.
+
 ```bash
 # Are dependencies installed?
 [ -f "package.json" ] && [ ! -d "node_modules" ] && echo "WARN: node_modules missing — run pnpm install"
@@ -121,12 +139,16 @@ Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher
 Never resume work unaware of broken CI. A red build on `main` means `main` itself is broken — you need to know before you branch from it. A red build on your working branch means your last session pushed something that failed — you need to know before writing more code on top.
 
 ```bash
-# Recent runs on main
-gh run list --branch main --limit 5
+# Detect the default branch — don't assume main
+DEFAULT=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+DEFAULT=${DEFAULT:-main}
 
-# Status of current branch (if not main)
+# Recent runs on the default branch
+gh run list --branch "$DEFAULT" --limit 5
+
+# Status of current branch (if not the default)
 CURRENT=$(git branch --show-current)
-if [ "$CURRENT" != "main" ]; then
+if [ "$CURRENT" != "$DEFAULT" ]; then
   gh run list --branch "$CURRENT" --limit 3
 
   # If there's an open PR, check its CI state
@@ -134,7 +156,9 @@ if [ "$CURRENT" != "main" ]; then
 fi
 
 # Any workflow failures in the last 24 hours on any branch?
-gh run list --status failure --limit 5 --created ">=1 day ago" 2>/dev/null
+# (gh --created takes GitHub date syntax like >=YYYY-MM-DD, not natural language)
+YESTERDAY=$(date -v-1d +%F 2>/dev/null || date -d yesterday +%F)
+gh run list --status failure --limit 5 --created ">=$YESTERDAY"
 ```
 
 Surface any red builds prominently in the Phase 4 briefing. Don't bury CI failures in a health-check table — put them at the top of the session briefing with the failing workflow name, the commit that broke it, and a one-line recommendation (fix CI first, or acknowledge and work around).
@@ -143,7 +167,9 @@ If CI is pending (workflow running), note it and move on — but flag it so the 
 
 #### Check Eval Drift (AI projects only)
 
-If the project has agent/prompt features with an `/evals/` directory, diff the two most recent eval runs to catch silent regressions. "Did I break Sandy last session?" is a question that should be answered before writing new code, not discovered after shipping.
+If the project has agent/prompt features with an eval history (`evals/history/` below), diff the two most recent eval runs to catch silent regressions. "Did last session's prompt change quietly break the agent?" is a question that should be answered before writing new code, not discovered after shipping.
+
+The JSON shape below (`score` / `passed` / `total` / `results`) is illustrative — adapt the paths and `jq` filters to the project's actual eval output format.
 
 ```bash
 if [ -d "evals/history" ] && [ "$(ls evals/history/*.json 2>/dev/null | wc -l)" -ge 2 ]; then
@@ -169,7 +195,7 @@ if [ -d "evals/history" ] && [ "$(ls evals/history/*.json 2>/dev/null | wc -l)" 
 fi
 ```
 
-If a regression is detected, surface it at the top of the briefing alongside any CI failures. List the specific eval cases that now fail (they were passing before) so the user can prioritize. An eval regression on money-touching code (Harper's gross-to-net) is a Tier 1 blocker — flag it as such.
+If a regression is detected, surface it at the top of the briefing alongside any CI failures. List the specific eval cases that now fail (they were passing before) so the user can prioritize. An eval regression on money-touching or safety-critical code (payroll math, auth, data deletion) is a Tier 1 blocker — flag it as such.
 
 If no prior history exists (first run), note that and move on.
 
@@ -178,15 +204,17 @@ If no prior history exists (first run), note that and move on.
 Things that may have changed while you were away:
 
 ```bash
-# Remote commits from teammates
-git log HEAD..origin/main --oneline 2>/dev/null
+# Remote commits from teammates (trustworthy only because Sync With Remote did a real fetch)
+DEFAULT=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+git log HEAD..origin/${DEFAULT:-main} --oneline 2>/dev/null
 
 # PRs that landed
 git log --oneline --merges --since="1 week ago" | head -5
 
-# Check if .env matches .env.example
+# Check if .env variable names match .env.example (grep -E, not -P — BSD grep on macOS has no -P)
 if [ -f ".env.example" ] && [ -f ".env" ]; then
-  diff <(grep -oP '^[A-Z_]+' .env.example | sort) <(grep -oP '^[A-Z_]+' .env | sort) || echo "WARN: .env is missing variables from .env.example"
+  diff <(grep -E -o '^[A-Z_][A-Z0-9_]*' .env.example | sort) <(grep -E -o '^[A-Z_][A-Z0-9_]*' .env | sort) \
+    || echo "WARN: .env and .env.example variable names differ (missing or extra vars — see diff above)"
 fi
 ```
 
@@ -277,7 +305,7 @@ Present what's changed and ask the user:
 
 If the project hasn't been touched in a while:
 - Check the last commit date
-- Suggest running dependency updates (`npm update`, `pip install --upgrade`)
+- Check open Dependabot PRs and `pnpm outdated` (or the stack's equivalent) — but do NOT blanket-upgrade; projects often pin or ignore majors deliberately (check CLAUDE.md and dependabot.yml for ignores before proposing bumps)
 - Check if any breaking changes occurred in the stack
 - Run the full test suite to establish a baseline
 
@@ -293,8 +321,8 @@ If there are multiple stashes, present them and ask which (if any) to apply:
 ### Diverged Branch
 
 If the local branch has diverged from remote:
-- Show the divergence: `git log --oneline HEAD..origin/main` and `git log --oneline origin/main..HEAD`
-- Suggest: rebase onto main, merge main in, or continue working and deal with it later
+- Show the divergence: `git log --oneline HEAD..origin/<default>` and `git log --oneline origin/<default>..HEAD`
+- Suggest: rebase onto the default branch, merge it in, or continue working and deal with it later
 
 ## Cowork Mode Adaptations
 
