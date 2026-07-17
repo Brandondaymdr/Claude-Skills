@@ -2,7 +2,7 @@
 
 This reference defines the standards the audit measures against. Update this file as Claude Code evolves and new best practices emerge.
 
-**Last updated:** April 2026
+**Last updated:** July 2026
 **Source:** code.claude.com/docs/en/best-practices, community patterns
 
 ---
@@ -124,6 +124,7 @@ Above well-configured, plus:
 - Lock file committed
 - No known high/critical CVEs
 - Major versions not more than 1 behind
+- Working audit tooling: npm retired the legacy audit endpoints (2026-07), so `pnpm audit` on pnpm ≤10 returns HTTP 410 everywhere — audit via pnpm ≥11 or an OSV-based scanner
 
 ### Security
 - No secrets in source code
