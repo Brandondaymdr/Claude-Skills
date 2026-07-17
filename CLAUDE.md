@@ -8,6 +8,7 @@ Brandon's personal Claude Code skills repo. Each top-level directory is one skil
 
 1. **Never leave work uncommitted.** A dirty working tree means live skills that exist nowhere else (this bit us: the Fleet session-skill hooks sat uncommitted for 7 weeks).
 2. **Pull at session start.** This repo is edited from multiple machines (MacBook + Mac Mini). A stale clone means stale live skills — this MacBook ran 2 months behind until 2026-07-16.
+3. **Never `git switch`/`checkout`/`commit` in this checkout directly.** Concurrent Claude sessions share this working tree — on 2026-07-17 two sessions raced, one's commit landed on the other's branch and swept in its uncommitted files. Do all work in an isolated worktree (`git worktree add <scratchpad>/... origin/main`), commit/push/PR from there, and merge remotely (`gh pr merge --repo ...`). The only git write allowed in this checkout is a fast-forward `git pull` on a clean `main`.
 
 ## Workflow rules
 
