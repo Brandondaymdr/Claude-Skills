@@ -5,7 +5,8 @@ description: >
   documentation, commits work cleanly, captures session knowledge, and leaves the project folder
   in optimal state for the next session. Use this skill whenever the user says "close out",
   "wrap up", "wind down", "end session", "done for now", "that's it for today", "closeout",
-  "session end", "save progress", "park this", or any variation of finishing a work session.
+  "session end", "park this", or any variation of finishing a work session. (A bare
+  "save progress" mid-session belongs to session-checkpoint, not closeout.)
   Also trigger when the user issues a /closeout command. Even if the user just says "I'm done" or
   "let's stop here" — use this skill. Works in both Claude Code and Cowork. Designed to pair with
   the session-restart skill for clean handoffs between sessions.
@@ -42,6 +43,27 @@ git log --oneline -5
 # Any uncommitted work?
 git stash list
 ```
+
+**Derive the session commit range.** Later phases (2.2, 4.5, 4.7) audit "the commits made this session." Don't hardcode `main..HEAD` — the default branch may have a different name, and if the session ran directly on the default branch that range is empty and every audit silently passes.
+
+```bash
+DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+
+if [ "$(git branch --show-current)" = "$DEFAULT_BRANCH" ]; then
+  # Session ran directly on the default branch. Flag it (branch-first repos
+  # shouldn't be here) and fall back to everything since the last closeout
+  # commit, or the last 10 commits if there's never been one.
+  echo "WARN: working directly on $DEFAULT_BRANCH — using last closeout as range base"
+  LAST_CLOSEOUT=$(git log --grep='chore(closeout)' --format=%H -1 2>/dev/null)
+  RANGE="${LAST_CLOSEOUT:-HEAD~10}..HEAD"
+else
+  RANGE="$DEFAULT_BRANCH..HEAD"
+fi
+echo "Session range: $RANGE"
+```
+
+Shell state does not persist between tool calls — re-derive (or inline the resolved value of) `$RANGE` and `$DEFAULT_BRANCH` in any later phase's commands.
 
 Produce a mental inventory:
 - What features/fixes were completed?
@@ -104,8 +126,8 @@ Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher
 Before pushing, audit every commit made this session for Conventional Commits compliance. A single non-conforming commit will fail commitlint in CI and block the merge.
 
 ```bash
-# Get all commits made since the branch diverged from main
-SESSION_COMMITS=$(git log --pretty=format:"%h %s" main..HEAD)
+# Get all commits in the session range (see Phase 1 for $RANGE derivation)
+SESSION_COMMITS=$(git log --pretty=format:"%h %s" "$RANGE")
 echo "$SESSION_COMMITS"
 
 # Validate each subject against the Conventional Commits regex
@@ -120,15 +142,24 @@ else
 fi
 ```
 
-If any commit doesn't conform, offer the user an interactive rebase to rewrite the messages:
+If any commit doesn't conform, rewrite the messages. **Do not reach for `git rebase -i`** — interactive git commands don't work inside Claude Code. Pick the lightest option that fits:
+
+**Only the most recent commit is non-conforming:**
 
 ```bash
-COMMIT_COUNT=$(git rev-list --count main..HEAD)
-git rebase -i HEAD~$COMMIT_COUNT
-# In the editor, change 'pick' to 'reword' on each non-conforming commit
+git commit --amend -m "fix(scope): conforming message"
 ```
 
-Walk the user through the rewrite — don't just `git rebase -i` and walk away. Suggest a conforming message for each non-conforming one based on the commit's diff. If the user prefers to squash, that's fine — but the final commit(s) must conform.
+**Multiple commits are non-conforming** (fine under a squash-merge house style — granular history won't survive the merge anyway): soft-reset to the branch point and recommit as one or a few conforming commits:
+
+```bash
+git reset --soft "$(git merge-base "$DEFAULT_BRANCH" HEAD)"
+git commit -m "feat(scope): conforming message covering the session's work"
+```
+
+**The user wants to keep granular history with per-commit rewords:** the interactive rebase has to be theirs — suggest they type `! git rebase -i HEAD~N` in the prompt so it runs in their terminal, and propose a conforming message for each bad commit (based on its diff) *before* they start.
+
+Either rewrite path changes history — if the branch was already pushed, follow with `git push --force-with-lease` (never plain `--force`).
 
 **Never push non-conforming commits.** CI will reject them, and rewriting history after push is painful.
 
@@ -171,14 +202,17 @@ Before moving to config, scan the session for signs that an ADR or CHANGELOG ent
 **Detect architectural decisions made this session:**
 
 ```bash
-# New dependencies added
-git diff main..HEAD -- package.json | grep -E '^\+.*"[^"]+":\s*"[^"]+"' | grep -v devDependencies
+# New dependencies added. Heuristic: matches every added line in package.json,
+# which includes version bumps and devDependencies — a unified diff doesn't say
+# which section a line belongs to. Eyeball the hits; only genuinely new runtime
+# dependencies signal an architectural decision.
+git diff "$RANGE" -- package.json | grep -E '^\+\s*"[^"]+":\s*"[^"]+"'
 
 # New top-level directories created
-git diff --name-status main..HEAD | awk '$1=="A" {print $2}' | awk -F/ '{print $1}' | sort -u
+git diff --name-status "$RANGE" | awk '$1=="A" {print $2}' | awk -F/ '{print $1}' | sort -u
 
 # New service integrations (look for new env vars, new config files)
-git diff main..HEAD -- .env.example
+git diff "$RANGE" -- .env.example
 ls -la "$(git rev-parse --show-toplevel)"/*.config.* 2>/dev/null
 ```
 
@@ -203,7 +237,7 @@ If the user declines, record the missed decision in the closeout commit body und
 
 ```bash
 # Changes in user-facing code paths
-git diff --name-only main..HEAD | grep -E '^(src/(app|pages|components|api)/|README\.md)' | head -20
+git diff --name-only "$RANGE" | grep -E '^(src/(app|pages|components|api)/|README\.md)' | head -20
 ```
 
 If any, prompt:
@@ -243,28 +277,33 @@ If the user declines, again record this as a skipped item in the closeout commit
 
 If this session modified Fleet's operational scripts or config (`.fleet/bin/*`, `.fleet/CONFIG.yaml`, `.fleet/SLICE_TEMPLATE.md`, or anything else under `.fleet/` that exists as a template), the same change probably needs to propagate into `.claude/skills/fleet-init/templates/` so future projects bootstrap with the fix. Otherwise the lesson stays local to the pilot and every new Fleet project re-discovers the same bug.
 
+Templates can live in **two places**, and both matter: a project-local copy (`.claude/skills/fleet-init/templates/`, installed by the bootstrap) and the **canonical skills repo** (`~/.claude/skills/fleet-init/templates/` — a symlink into the claude-skills repo's working tree). A backport that only updates the project-local copy leaves every *future* bootstrap stale. Check drift against both:
+
 ```bash
-if [ -d ".fleet" ] && [ -d ".claude/skills/fleet-init/templates" ]; then
+if [ -d ".fleet" ]; then
   # What did this session touch under .fleet that has a template counterpart?
-  CHANGED_FLEET=$(git diff --name-only main..HEAD -- .fleet/bin .fleet/CONFIG.yaml .fleet/SLICE_TEMPLATE.md 2>/dev/null)
+  CHANGED_FLEET=$(git diff --name-only "$RANGE" -- .fleet/bin .fleet/CONFIG.yaml .fleet/SLICE_TEMPLATE.md 2>/dev/null)
 
   if [ -n "$CHANGED_FLEET" ]; then
     echo "Fleet operational files modified this session:"
     echo "$CHANGED_FLEET"
-    echo ""
-    echo "Checking drift against fleet-init templates:"
-    for f in $CHANGED_FLEET; do
-      REL=${f#.fleet/}
-      TEMPLATE_PATH=".claude/skills/fleet-init/templates/$REL"
-      if [ -f "$TEMPLATE_PATH" ]; then
-        if diff -q "$f" "$TEMPLATE_PATH" >/dev/null 2>&1; then
-          echo "  OK: $f matches template"
+    for TEMPLATE_ROOT in ".claude/skills/fleet-init/templates" "$HOME/.claude/skills/fleet-init/templates"; do
+      [ -d "$TEMPLATE_ROOT" ] || continue
+      echo ""
+      echo "Checking drift against $TEMPLATE_ROOT:"
+      for f in $CHANGED_FLEET; do
+        REL=${f#.fleet/}
+        TEMPLATE_PATH="$TEMPLATE_ROOT/$REL"
+        if [ -f "$TEMPLATE_PATH" ]; then
+          if diff -q "$f" "$TEMPLATE_PATH" >/dev/null 2>&1; then
+            echo "  OK: $f matches template"
+          else
+            echo "  DRIFT: $f vs $TEMPLATE_PATH"
+          fi
         else
-          echo "  DRIFT: $f vs $TEMPLATE_PATH"
+          echo "  (no template at $TEMPLATE_PATH — non-templated file, skip)"
         fi
-      else
-        echo "  (no template at $TEMPLATE_PATH — non-templated file, skip)"
-      fi
+      done
     done
   fi
 fi
@@ -275,13 +314,14 @@ If any line above says `DRIFT:`, prompt the user:
 > "This session changed Fleet config/scripts. The fleet-init templates would still bootstrap new projects with the OLD versions. Backport the changes now so future Fleet projects inherit the fix? Y/n"
 
 If yes:
-1. For each `DRIFT:` pair, copy the project's `.fleet/` file over the template counterpart (`cp .fleet/bin/foo.sh .claude/skills/fleet-init/templates/bin/foo.sh`).
-2. Re-run the diff check above to confirm parity.
-3. Commit as a separate `chore(skill): backport <description> to fleet-init templates` commit (don't bundle with the closeout commit — backports are easier to review and revert when isolated).
+1. For each `DRIFT:` pair, copy the project's `.fleet/` file over the template counterpart in **every** location that has one (`cp .fleet/bin/foo.sh .claude/skills/fleet-init/templates/bin/foo.sh`, and likewise into `~/.claude/skills/fleet-init/templates/`).
+2. Re-run the diff check above to confirm parity in both locations.
+3. **Project-local copy:** commit in the project repo as a separate `chore(skill): backport <description> to fleet-init templates` commit (don't bundle with the closeout commit — backports are easier to review and revert when isolated).
+4. **Canonical copy:** `~/.claude/skills` is a *different git repo* (claude-skills) with its own branch→PR workflow — the project commit in step 3 does not capture it. The `cp` takes effect live immediately (the install is a symlinked working tree) but is committed nowhere; stopping here strands the backport as uncommitted work in that repo. Finish the hop: in the claude-skills repo, branch (`chore/backport-<description>`), commit, push, open the PR. If you can't finish it now, record it under `## Template backports deferred:` — this exact stranding sat unnoticed for 7 weeks once.
 
 If no, record the deferred backport in the closeout commit body under `## Template backports deferred:` so it surfaces on the next restart. Be specific: list the file paths and a one-line description of what the change does, so future-you doesn't have to re-derive the context.
 
-Reason this exists: Day-14 retro Decision 4 of the barrel-tracking pilot identified that operational Fleet fixes (like the `gtimeout` wall-clock cap added on Day 15) need to propagate into the bootstrap template, but the manual mirror step was easy to forget. The hdyw bootstrap on Day 14 inherited stale templates because the backport hadn't been done. Automating drift detection at closeout closes the gap before the next bootstrap.
+Reason this exists: Day-14 retro Decision 4 of the barrel-tracking pilot identified that operational Fleet fixes (like the `gtimeout` wall-clock cap added on Day 15) need to propagate into the bootstrap template, but the manual mirror step was easy to forget. The hdyw bootstrap on Day 14 inherited stale templates because the backport hadn't been done. Automating drift detection at closeout closes the gap before the next bootstrap. The two-location check exists because a later audit found a "successful" single-hop backport had updated only the pilot's local copy — the canonical templates still differed on `dispatcher.sh` and `lib.sh`.
 
 ### Phase 5: Update .claude/ Configuration
 
@@ -308,8 +348,10 @@ find . -name "*.tmp" -o -name "*.bak" -o -name "*~" | head -20
 # Check for large files that shouldn't be committed
 find . -size +1M -not -path "./.git/*" -not -path "./node_modules/*" | head -10
 
-# Check for debug code left behind
-grep -rn "console.log\|debugger\|TODO.*REMOVE\|HACK\|FIXME" src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" | head -20
+# Check for debug code left behind — git grep covers tracked files only, so it
+# works regardless of layout (src/, app/, packages/). Adapt patterns to the stack
+# (e.g. print( for Python, dbg! for Rust).
+git grep -nE "console\.log|debugger|TODO.*REMOVE|HACK|FIXME" -- ':!*.lock' ':!*.md' 2>/dev/null | head -20
 ```
 
 Don't be overly aggressive — some TODOs and console.logs are intentional. But flag anything that looks like session debris.
@@ -333,11 +375,25 @@ Next session should:
 - [Priority 3]"
 ```
 
+**Then push — a closeout that only exists locally defeats the handoff.** Another machine or teammate pulling the repo sees none of it, and the session summary is stranded on this machine (in a multi-machine setup this is exactly how work goes missing).
+
+```bash
+# Push the branch (sets upstream if new)
+git push -u origin "$(git branch --show-current)"
+
+# Surface the PR state: report the existing PR, or note that one is needed
+gh pr view --json url,state,title -q '"\(.state) \(.title) — \(.url)"' 2>/dev/null \
+  || echo "No PR for this branch yet — open one with: gh pr create"
+```
+
+If the repo has no remote, say so explicitly in the summary instead of skipping silently.
+
 **Then gather the operational metrics before presenting the summary:**
 
 ```bash
-# Eval drift (AI projects only)
-if [ -d "evals/history" ]; then
+# Eval drift (AI projects only; needs at least 2 runs — with 1, "previous"
+# would equal "latest" and report a misleading zero delta)
+if [ -d "evals/history" ] && [ "$(ls evals/history/*.json 2>/dev/null | wc -l)" -ge 2 ]; then
   LATEST=$(ls -t evals/history/*.json | head -1)
   PREVIOUS=$(ls -t evals/history/*.json | head -2 | tail -1)
   LATEST_SCORE=$(jq -r '.score' "$LATEST" 2>/dev/null || echo "?")
@@ -373,7 +429,8 @@ fi
    - **Open ADRs:** `$OPEN_ADRS` in Proposed status — list them.
    - **CHANGELOG Unreleased entries:** `$UNRELEASED_LINES` — if 0 and this session touched user-facing code, flag as missed.
    - **Conventional Commits compliance:** [result from Phase 2.2 audit]
-7. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing?]
+7. **Handoff state:** branch pushed? PR open/updated (link)? — or "no remote" if the repo has none
+8. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing?]
 
 **If the user is about to merge a PR from this branch:** remind them of the 10-minute cool-down (per `DEFAULTS-ADR-0001`). The CI `pr-age-check` job will block merge for PRs under 10 minutes old, but the habit is to close Claude, get water, come back, and re-read the diff. Don't merge in the same minute you push.
 

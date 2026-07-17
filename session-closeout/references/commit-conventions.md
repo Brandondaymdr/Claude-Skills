@@ -42,7 +42,7 @@ Blockers: [any blockers, or 'none']
 ## Session Closeout
 
 ```
-chore: session closeout — [brief summary]
+chore(closeout): session closeout — [brief summary]
 
 Completed:
 - [Feature/fix 1]
@@ -85,7 +85,8 @@ Tests: [passing/failing — if failing, why]
 
 ## Conventions
 
-- Use conventional commit prefixes: feat, fix, chore, docs, refactor, test, style, perf, ci
+- Use conventional commit prefixes: feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert, wip (wip commits must still conform — the Phase 2.2 audit checks them too)
+- The closeout commit always carries a scope: `chore(closeout): ...`
 - Include scope in parentheses when it adds clarity: `feat(auth):`, `fix(api):`
 - First line under 72 characters
 - Body explains *why*, not just *what*
