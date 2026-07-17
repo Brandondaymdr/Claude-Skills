@@ -300,9 +300,18 @@ Add to `package.json`:
 }
 ```
 
-Create `commitlint.config.js`:
+Create `commitlint.config.js` — note the `type-enum` extension: stock config-conventional rejects the `wip` type, which the session-checkpoint and session-closeout skills rely on for WIP commits:
 ```js
-export default { extends: ['@commitlint/config-conventional'] };
+export default {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['build', 'chore', 'ci', 'docs', 'feat', 'fix', 'perf', 'refactor', 'revert', 'style', 'test', 'wip'],
+    ],
+  },
+};
 ```
 
 **Layer 3 — Local test/build scripts (minutes, on demand):**

@@ -52,6 +52,21 @@ Reasoning: local enforcement is faster feedback than CI. If a bad commit ships t
 - `.husky/pre-commit` → `lint-staged`
 - `.husky/commit-msg` → `commitlint --edit $1`
 
+**Required `type-enum` extension:** stock `@commitlint/config-conventional` does not include `wip` in its allowed types, but the session skills (session-checkpoint, session-closeout) commit work-in-progress as `wip(scope):` and session-restart recovers context by grepping for it. Every scaffolded `commitlint.config.js` must extend the type list:
+
+```js
+export default {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['build', 'chore', 'ci', 'docs', 'feat', 'fix', 'perf', 'refactor', 'revert', 'style', 'test', 'wip'],
+    ],
+  },
+};
+```
+
 CI also runs the same checks as a belt-and-suspenders backstop.
 
 ### 5. ADR numbering: **Zero-padded (0001, 0002, ...)**
