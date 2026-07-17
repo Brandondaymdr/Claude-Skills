@@ -13,17 +13,23 @@ Quick-reference for restarting a session on an existing project.
 - [ ] Check current branch
 - [ ] Check for uncommitted changes (`git status`)
 - [ ] Check for stashed work (`git stash list`)
-- [ ] Look for closeout commit (`git log --grep="closeout"`)
+- [ ] Look for closeout commit (`git log --all --grep="chore(closeout)"`)
 - [ ] Read closeout commit message for session summary
-- [ ] Check for remote changes (`git fetch --dry-run`)
+- [ ] **Real fetch** (`git fetch origin` — never `--dry-run`), then check ahead/behind (`git rev-list --left-right --count @{u}...HEAD`)
+- [ ] Behind + clean → `git pull --ff-only`; behind + dirty → flag in briefing, don't pull
+- [ ] Fleet projects: sync the build queue (`node scripts/sync-fleet-queue.mjs` if present; else manual skim vs merged `[FLEET]` PRs)
 
 ## Health Check
+
+Scale to time away; skip checks that don't apply — don't report N/A rows.
 
 - [ ] Dependencies installed (node_modules, venv, etc.)
 - [ ] Tests pass
 - [ ] Build succeeds
 - [ ] Lint clean
-- [ ] .env has all variables from .env.example
+- [ ] CI state: default branch green? current branch / open PR green? failures in last 24h?
+- [ ] Eval drift (AI projects): diff two most recent eval runs, flag score regressions
+- [ ] .env variable names match .env.example
 - [ ] No large temp files or debug artifacts
 
 ## Context Recovery
@@ -36,6 +42,7 @@ Quick-reference for restarting a session on an existing project.
 
 ## Briefing
 
+- [ ] Red CI, eval regressions, or remote drift go at the TOP — never buried in a table
 - [ ] Present project name and one-line description
 - [ ] Summarize last session's work
 - [ ] Report current state (branch, status, health)
