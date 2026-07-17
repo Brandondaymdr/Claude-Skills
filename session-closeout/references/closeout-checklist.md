@@ -48,6 +48,7 @@ Run through this at the end of every session. Check items as you go.
 ## Handoff
 
 - [ ] Closeout commit created with session summary
+- [ ] Branch pushed to remote; PR opened or updated (or "no remote" noted in summary)
 - [ ] Completed work listed
 - [ ] In-progress work documented with status
 - [ ] Blockers and discovered issues noted
