@@ -19,7 +19,7 @@ Before applying any Category A fix, scan for legitimate naming alternates. Varia
 | `docs/decisions/` | `docs/adr/`, `docs/architecture-decisions/`, `docs/adrs/` |
 | `docs/decisions/DECISIONS.md` | `docs/<variant>/DECISIONS.md`, `docs/<variant>/README.md`, `docs/<variant>/INDEX.md` |
 | `.github/pull_request_template.md` | `.github/PULL_REQUEST_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
-| `commitlint.config.js` | `commitlint.config.{ts,mjs,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
+| `commitlint.config.mjs` | `commitlint.config.{js,ts,cjs}`, `.commitlintrc`, `.commitlintrc.{json,yaml,yml,js}` |
 | `CHANGELOG.md` | `CHANGES.md`, `HISTORY.md` (flag as non-canonical, do not rename); `.changeset/config.json` (Changesets — auto-generates CHANGELOG, do not scaffold) |
 
 Detected variants are listed in the run report under "Naming variants observed." Renames are surfaced as Category C — never auto-applied.
@@ -34,6 +34,7 @@ Some fixes have prerequisites that conformance does not install. If a prereq is 
 |---|---|---|
 | `commitlint-config` | `@commitlint/cli` in `package.json` devDependencies | `pnpm add -D @commitlint/cli @commitlint/config-conventional` |
 | `husky-commit-msg` | `@commitlint/cli` in devDependencies AND a commitlint config (canonical or variant) | Same as above; hook would fail without commitlint |
+| `husky-pre-commit` (lint-staged line) | `lint-staged` in devDependencies | `pnpm add -D lint-staged` — without it the hook fails on every commit |
 | `husky-pre-commit` gitleaks append | `gitleaks` binary available locally | `brew install gitleaks` (or platform equivalent) |
 
 Prerequisite checks happen **after** variant recognition but **before** the fix lands.
@@ -46,7 +47,7 @@ These fixes **only create files that don't exist** (including variants per the t
 |---|---|---|
 | `husky-pre-commit` | `.husky/pre-commit` | Inline below |
 | `husky-commit-msg` | `.husky/commit-msg` | Inline below |
-| `commitlint-config` | `commitlint.config.js` | Inline below |
+| `commitlint-config` | `commitlint.config.mjs` | Inline below |
 | `ci-workflow` | `.github/workflows/ci.yml` | `project-kickoff/SKILL.md` Step 6 Layer 4 |
 | `dependabot` | `.github/dependabot.yml` | `DEFAULTS-ADR-0001.md` §10 |
 | `pr-template` | `.github/pull_request_template.md` | `project-kickoff/SKILL.md` Step 6 Layer 5 |
@@ -86,6 +87,9 @@ These fixes **modify existing files**. Show a diff preview and require user conf
 - Modify source code
 - Apply dependency upgrades (Dependabot's job)
 - Resolve uncommitted changes (must be clean before conformance starts)
+- Trim an oversized `CLAUDE.md` after a rules backfill pushes it over 200 lines
+- Install missing fix prerequisites (commitlint, lint-staged, gitleaks — see prerequisites table)
+- Remote-state fixes whose tooling is absent (auto-downgraded by pre-flight, listed with the exact manual command)
 
 ---
 
@@ -93,24 +97,24 @@ These fixes **modify existing files**. Show a diff preview and require user conf
 
 ### `.husky/pre-commit`
 
-```bash
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+Husky v9+ hooks are plain shell scripts — the old `. "$(dirname -- "$0")/_/husky.sh"` bootstrap header is deprecated in v9 and removed in v10; do not include it.
 
+```bash
 pnpm exec lint-staged
-pnpm exec gitleaks protect --staged --verbose --redact
+pnpm exec gitleaks git --pre-commit --staged --verbose --redact
 ```
+
+(`gitleaks git --pre-commit --staged` is the v8.19+ form; `gitleaks protect --staged` is its deprecated alias.)
 
 ### `.husky/commit-msg`
 
 ```bash
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 pnpm exec commitlint --edit "$1"
 ```
 
-### `commitlint.config.js`
+### `commitlint.config.mjs`
+
+The `.mjs` extension loads as ESM regardless of the project's `"type"` field — a bare `.js` with `export default` breaks in CJS projects.
 
 ```js
 export default { extends: ['@commitlint/config-conventional'] };
