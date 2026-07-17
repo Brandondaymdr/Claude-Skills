@@ -112,7 +112,7 @@ When CLAUDE.md grows past 200 lines, redistribute content:
 | Path-specific rules | `.claude/rules/` with path frontmatter | Only loads when working in those paths |
 | Domain knowledge | `.claude/skills/` | Loads on demand when relevant |
 | Deep reference docs | `docs/` or skill `references/` | Read explicitly when needed |
-| One-off workflows | `.claude/commands/` | Invoked manually with `/project:name` |
+| One-off workflows | `.claude/commands/` | Invoked manually with `/name` |
 
 ### Using @imports
 

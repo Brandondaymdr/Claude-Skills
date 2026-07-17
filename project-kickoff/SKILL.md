@@ -203,21 +203,24 @@ echo "1" > .claude/tier   # or 2, or 3 — matches Phase 1 question 11
 
 For Tier 3 projects, this file lives alongside `STATUS.md` in the project root structure (Tier 3 skips the rest of `.claude/`, but the tier marker still goes in if `.claude/` is created).
 
-**settings.json** — Permissions appropriate to the stack:
+**settings.json** — Permissions appropriate to the stack. Note: `allow`/`deny` MUST nest under a `"permissions"` key — top-level lists are silently ignored:
 ```json
 {
-  "allow": [
-    "Bash(npm run *)",
-    "Bash(npx *)",
-    "Bash(git *)",
-    "Read",
-    "Write",
-    "Edit"
-  ],
-  "deny": [
-    "Bash(rm -rf *)",
-    "Bash(: > .env)"
-  ]
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(git *)",
+      "Read",
+      "Write",
+      "Edit"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(: > .env)"
+    ]
+  }
 }
 ```
 
@@ -260,15 +263,22 @@ In `.claude/settings.json`, add hooks that lint after file edits:
 ```json
 {
   "hooks": {
-    "PostToolExecution": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "pnpm lint --fix 2>&1 | tail -5"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm lint --fix 2>&1 | tail -5"
+          }
+        ]
       }
     ]
   }
 }
 ```
+
+(Event names are `PreToolUse` / `PostToolUse` / `UserPromptSubmit` / `SessionStart` / `SessionEnd` / `PreCompact`, and each matcher entry needs the nested `hooks` array — a bare `command` key on the matcher object is ignored.)
 
 **Layer 2 — Pre-commit hooks (seconds, before commit):**
 
@@ -466,10 +476,9 @@ To scan for skills:
 # List all installed skills
 ls -la ~/.claude/skills/ 2>/dev/null
 ls -la .claude/skills/ 2>/dev/null
-
-# Check for plugins
-claude /plugins list 2>/dev/null || echo "No plugin system available"
 ```
+
+To check installed plugins, run the in-session command `/plugin list` (there is no `claude /plugins` CLI subcommand).
 
 Present findings: "You have X skills installed. For this project, Y and Z look relevant. You might also want to create skills for [domain A] and [domain B]."
 
