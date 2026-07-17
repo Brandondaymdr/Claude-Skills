@@ -34,7 +34,7 @@ What this project is and what it does. One sentence of context goes a long way.
 Major components and how they connect. For non-trivial architectures, include a simple ASCII diagram. Mention the data flow — where requests come in, how they're processed, where data lives.
 
 ### 3. Tech Stack (3-5 lines)
-Language, framework, database, hosting, and key libraries. Include version info when it matters (e.g., "Next.js 14 with App Router" vs just "Next.js").
+Language, framework, database, hosting, and key libraries. Include version info when it matters (e.g., "Next.js 16 with App Router" vs just "Next.js").
 
 ### 4. Commands (5-10 lines)
 Every command Claude needs to install, run, test, build, lint, and deploy. These should be copy-paste ready. Include flags that aren't obvious.
@@ -194,7 +194,7 @@ Next.js App Router frontend → tRPC API layer → Supabase PostgreSQL.
 Auth via Supabase with Google OAuth. Deployed on Vercel.
 
 ## Tech Stack
-- Next.js 14 (App Router), TypeScript strict
+- Next.js 16 (App Router), TypeScript strict
 - tRPC v11 for type-safe API
 - Supabase (PostgreSQL + Auth + Realtime)
 - Tailwind CSS + shadcn/ui components

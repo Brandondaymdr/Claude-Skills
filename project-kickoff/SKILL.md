@@ -49,6 +49,47 @@ Don't over-interview — if the user gives a clear brief ("Next.js app with Supa
 
 Create the folder structure, docs, and configuration. The order matters — establish the foundation before writing any application code.
 
+#### Step 0: Clone from Template (Preferred Path)
+
+**Before running any of steps 1–7 from scratch,** check whether the user's template repo exists. If it does, clone from it — it already has every layer configured correctly.
+
+```bash
+# Check if the template repo exists
+gh repo view Brandondaymdr/project-template 2>/dev/null && echo "TEMPLATE EXISTS"
+```
+
+If the template exists, confirm with the user:
+
+> "I found `Brandondaymdr/project-template`. Which variant fits this project?
+> 1. `web-next-supabase` — Next.js 16 + Supabase + Vercel
+> 2. `desktop-tauri` — Tauri v2 + React + Drizzle + SQLite/Turso
+> 3. `node-lib` — TypeScript library/utility
+>
+> Or clone from scratch if none fit?"
+
+On confirmation, run:
+
+```bash
+gh repo create <new-project-name> \
+  --template Brandondaymdr/project-template \
+  --private \
+  --clone
+
+cd <new-project-name>
+
+# Remove the variants you don't need (the template ships all three as subdirs)
+# Keep only the one you selected, move its contents up a level.
+# Commit the cleanup as the first commit on main:
+git add -A
+git commit -m "chore: initialize from $VARIANT template variant"
+```
+
+Then skip ahead to Phase 3 (adapt CLAUDE.md and the scaffolded docs to the project as you go).
+
+**If the template doesn't exist yet** (or the user explicitly wants to bootstrap from scratch): fall through to Steps 1–7 below, then offer to promote the result into `project-template` when done. Every from-scratch kickoff is a prompt to build the template.
+
+**If the template is out of date** compared to current best practices (detected by running `/folder-forensic-audit` on the template itself): fix the template first, then kickoff. Template debt compounds across every future project.
+
 #### Step 1: Initialize the Repository
 
 ```bash
@@ -139,7 +180,7 @@ simple diagram if the architecture is non-trivial.
 
 ## Tech Stack
 
-- Language/Framework: [e.g., TypeScript, Next.js 14]
+- Language/Framework: [e.g., TypeScript, Next.js 16]
 - Database: [e.g., Supabase PostgreSQL]
 - Hosting: [e.g., Vercel]
 - Auth: [e.g., Supabase Auth]
@@ -354,9 +395,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
+        with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -388,6 +429,8 @@ jobs:
 The top-level `permissions:` block is **required** — the default `GITHUB_TOKEN` is read-only on contents but does NOT grant `pull_requests:read`. Without this block, both `gitleaks-action` (queries `/pulls/{n}/commits`) and `pr-age-check` (uses `gh pr view`) will fail with 403. The `--repo "$GITHUB_REPOSITORY"` on the `gh pr view` line is similarly required so the gh CLI knows which repo it's querying without relying on a working directory it may not have.
 
 Skip the `pr-age-check` job for `dependabot[bot]` and `docs:` PRs via commit-message match if desired.
+
+**Expected behavior, not flakiness:** `pr-age-check` FAILS on every PR's initial run by construction — the job fires the moment the PR opens, when the PR is always under 10 minutes old. That red X is the cool-down working. After 10 minutes, re-run the job (GitHub UI "Re-run" or `gh run rerun <run-id>`) and it goes green, unblocking the merge. Tell the user this at kickoff so the first PR's red check doesn't get "debugged."
 
 If the project has AI features, also create `.github/workflows/evals.yml` that runs on PRs touching `/evals/**`, `/src/agents/**`, or prompt files. Posts score as a PR comment. Fails if the score drops below `evals/threshold.json`.
 
@@ -423,45 +466,6 @@ If any layer fails, fix it before Phase 3. A broken verification layer at kickof
 - Create `.env.example` with all required environment variables (no actual values)
 - Set up deployment config if applicable (vercel.json, Dockerfile, etc.)
 - Configure CI/CD basics if the project uses GitHub Actions or similar
-
-#### Step 8: Clone from Template (Preferred Path)
-
-**Before running any of steps 1–7 from scratch,** check whether the user's template repo exists. If it does, clone from it — it already has every layer configured correctly.
-
-```bash
-# Check if the template repo exists
-gh repo view Brandondaymdr/project-template 2>/dev/null && echo "TEMPLATE EXISTS"
-```
-
-If the template exists, confirm with the user:
-
-> "I found `Brandondaymdr/project-template`. Which variant fits this project?
-> 1. `web-next-supabase` — Next.js 15 + Supabase + Vercel
-> 2. `desktop-tauri` — Tauri v2 + React + Drizzle + SQLite/Turso
-> 3. `node-lib` — TypeScript library/utility
->
-> Or clone from scratch if none fit?"
-
-On confirmation, run:
-
-```bash
-gh repo create <new-project-name> \
-  --template Brandondaymdr/project-template \
-  --private \
-  --clone
-
-cd <new-project-name>
-
-# Remove the variants you don't need (the template ships all three as subdirs)
-# Keep only the one you selected, move its contents up a level.
-# Commit the cleanup as the first commit on main:
-git add -A
-git commit -m "chore: initialize from $VARIANT template variant"
-```
-
-**If the template doesn't exist yet** (or the user explicitly wants to bootstrap from scratch): fall back to Steps 1–7 above, then offer to promote the result into `project-template` when done. Every from-scratch kickoff is a prompt to build the template.
-
-**If the template is out of date** compared to current best practices (detected by running `/folder-forensic-audit` on the template itself): fix the template first, then kickoff. Template debt compounds across every future project.
 
 ### Phase 3: Skill Audit
 
@@ -504,14 +508,26 @@ git commit -m "chore: initial project scaffolding
 # Push main
 git push -u origin main
 
-# Enable branch protection via gh CLI
-gh api -X PUT repos/:owner/:repo/branches/main/protection \
-  -f required_status_checks[strict]=true \
-  -f required_status_checks[contexts][]=verify \
-  -f required_status_checks[contexts][]=pr-age-check \
-  -f enforce_admins=true \
-  -f required_pull_request_reviews[required_approving_review_count]=0 \
-  -f restrictions=null
+# Enable branch protection via gh CLI.
+# NOTE: this endpoint needs typed JSON (booleans, null, nested objects) —
+# `-f key=value` sends strings and the API rejects them with a 422.
+# Pass the whole payload as raw JSON via --input instead:
+gh api -X PUT repos/:owner/:repo/branches/main/protection --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "checks": [
+      { "context": "verify" },
+      { "context": "pr-age-check" }
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
+  "restrictions": null
+}
+EOF
 ```
 
 After this commit, all future work happens on branches with PRs. If the user tries to commit to main, git and GitHub will both refuse.

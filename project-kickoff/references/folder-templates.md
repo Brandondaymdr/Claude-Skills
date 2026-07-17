@@ -40,7 +40,7 @@ Files that should be gitignored:
 
 ## Next.js + Supabase + Vercel
 
-The most common web app stack. Uses App Router (Next.js 14+).
+The most common web app stack. Uses App Router (Next.js 15+; current projects are on Next.js 16).
 
 ```
 project-root/
