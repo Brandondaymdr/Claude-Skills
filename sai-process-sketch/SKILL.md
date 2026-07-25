@@ -56,6 +56,37 @@ Established 2026-07-24. The canonical reference implementations live in `/Users/
 ## Mechanics
 
 - One self-contained HTML file — all CSS inline, no external JS, no localStorage. Responsive (single column under 900px). CSS-only staggered reveal animation, respecting `prefers-reduced-motion` (add an `animation-delay` rule per step — the base sheet only covers the first two).
+- **Always include an `@media print` block.** Sketches get exported to PDF for stakeholders who want something to forward or print, and without print rules the export is broken in two ways:
+  1. **Blank pages.** The reveal animation starts at `opacity:0` and never completes in a headless print render, so every step exports invisible. The print block *must* neutralize it:
+     ```css
+     @media print{
+       body{background:#fff;background-image:none;font-size:10pt;}
+       .wrap{max-width:none;padding:0;}
+       .step{opacity:1 !important;transform:none !important;animation:none !important;padding:22px 0;}
+       .step h2{break-after:avoid;page-break-after:avoid;}
+       .frame,.qcard,.notes,.tiles{page-break-inside:avoid;break-inside:avoid;}
+       .frame{box-shadow:none;}
+       .stepnum{position:static;transform:none;font-size:40px;margin-bottom:4px;}
+       header{padding-top:0;} footer{padding-bottom:0;}
+     }
+     ```
+  2. **Near-empty pages.** Do **not** put `page-break-inside:avoid` on `.step` (or on a full-height `section`) — a step is taller than a page, so the rule pushes it wholesale to the next one and leaves two-thirds of a page blank. Keep break-avoidance on the *small* blocks only: screen frames, note columns, question cards, tables.
+- Render PDFs with Chrome's print engine — no extra dependency, and it honors the print block:
+  ```bash
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+    --no-pdf-header-footer --virtual-time-budget=12000 \
+    --print-to-pdf=out.pdf "file://$PWD/<topic>-sketch.html"
+  ```
+  Then confirm nothing exported blank — page count alone won't tell you:
+  ```bash
+  python3 -c "
+  import re,zlib,sys
+  d=open(sys.argv[1],'rb').read()
+  s={int(m.group(1)):len(zlib.decompress(re.search(rb'stream\r?\n(.*?)endstream',m.group(2),re.S).group(1)))
+     for m in re.finditer(rb'(\d+)\s+0\s+obj(.*?)endobj',d,re.S) if re.search(rb'stream',m.group(2))}
+  c=[s.get(int(m.group(1)),0) for m in re.finditer(rb'/Type\s*/Page[^s].*?/Contents\s+(\d+)\s+0\s+R',d,re.S)]
+  print('blank pages:',[i+1 for i,v in enumerate(c) if v<400] or 'none')" out.pdf
+  ```
 - **Naming:** `<topic>-sketch.html` (e.g. `housing-phase-sketch.html`, `package-config-sketch.html`).
 - **Location:** save into `/Users/brandonday/Projects/SAI/sai-portal/` alongside the others.
 - **Rev date** in the kicker; update it on every revision.
