@@ -30,6 +30,8 @@ The full `session-closeout` skill is a 7-phase SOP for ending a session. This is
 
 Three steps. Should take under 60 seconds.
 
+**A checkpoint is a save, not a review.** Don't run tests, lint, or builds as part of it, don't audit the diff for quality, and don't fix things you notice along the way — note them in the breadcrumb's `Next:` line and get back to work. Gates run when the work completes (and at closeout); expanding a checkpoint into a mini-closeout is how 60 seconds becomes 20 minutes.
+
 ### Step 1: Commit Current State (Conventional Commits enforced)
 
 ```bash

@@ -27,6 +27,8 @@ A good restart bridges the gap between sessions. It turns "I think I was working
 
 Gather the full picture before saying anything. Read everything, then synthesize.
 
+**Recon is read-only.** The only mutations restart may make are the ones this skill names (the ff-only pull, the Fleet queue sync). Anything broken you find — failing tests, red CI, stale docs — goes in the briefing as a priority, not into an immediate unrequested fix.
+
 #### Read Project Documentation
 
 ```bash
@@ -118,6 +120,8 @@ Reason this exists: Day-13 of the barrel-tracking pilot, an overnight dispatcher
 #### Check Project Health
 
 Scale this to time away: after a same-day return, skim; after a week or more, run the full test/build/lint baseline. Skip checks that don't apply to the project (no dependencies, no build, no CI) rather than reporting rows of N/A.
+
+**Trust the last closeout.** If the closeout commit records a green gate (tests/build/lint) and nothing has changed since — no new local or remote commits, same lockfile — cite that recorded result in the briefing instead of re-running the suite. Re-verifying an already-verified state burns session time for nothing. Run the full baseline when the closeout is old or absent, the tree changed, or dependencies moved.
 
 ```bash
 # Are dependencies installed?
@@ -286,6 +290,8 @@ If there's WIP to resume:
 If the project is clean (no WIP):
 - Present the recommended priorities from the closeout
 - Ask if they want to start a new feature, fix a bug, or work on something else
+
+**Then compose the session brief.** Current models (Opus 5, Fable 5) do their best work from one complete task specification given up front, not from instructions drip-fed across turns. Once the user picks a focus, turn it into a full spec before starting: the goal, the constraints, which files/areas are in play, and what "done" looks like (tests passing, PR open, docs updated). One well-specified opening brief beats ten corrective follow-ups — it is the single biggest quality lever these models have. If the user's ask is already complete, start; don't interview them.
 
 ## Handling Messy State
 
