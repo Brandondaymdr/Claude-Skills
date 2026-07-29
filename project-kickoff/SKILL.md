@@ -208,9 +208,9 @@ Commands to install, run, test, and build:
 6. **`CHANGELOG.md` `## [Unreleased]` section is updated** for every user-facing change.
 7. **Self-merge requires a 10-minute cool-down** after PR opened. Re-read the diff fresh before merging. CI enforces this via the `pr-age-check` job.
 
-## Verification Commands Claude Must Use
+## Gate Commands
 
-Claude must run these before declaring any task done:
+A change is complete only when these pass. Run the set once when the work is done, read the output, and cite the results — never claim green without having seen it, and don't re-run already-green gates as ritual:
 
 - `pnpm lint` — linting
 - `pnpm typecheck` — type checking (`tsc --noEmit`)
@@ -218,7 +218,13 @@ Claude must run these before declaring any task done:
 - `pnpm build` — build must succeed
 - `pnpm test:evals` — eval suite (AI projects only)
 
-If any of these fail, the task is not done.
+If any fail, the work isn't done.
+
+## Working Style
+
+- Deliver what was asked, at the scope intended. Make routine judgment calls yourself; check in only when different readings would lead to materially different work. If the ask seems mistaken or a better approach exists, say so in a sentence and keep going as asked — don't quietly narrow, widen, or transform the task. Report completion only when the whole task is done.
+- Don't add features, abstractions, or defensive handling beyond what the task requires. Do the simplest thing that works well; validate at system boundaries only.
+- No extra self-review passes — run the Gate Commands once at the end and cite results.
 
 ## Project-Specific Gotchas
 

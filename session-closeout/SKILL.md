@@ -72,6 +72,8 @@ Produce a mental inventory:
 - Any blockers or decisions that need to be made next session?
 - Any bugs discovered but not fixed?
 
+**Closeout records; it doesn't expand.** Bugs, debt, and stale docs discovered during closeout become entries in the summary's *Discovered issues* / *Recommended next steps* — they do not become new work at wind-down time. The only writes closeout makes are the ones its phases explicitly call for (commits, doc updates, config updates).
+
 ### Phase 2: Commit Outstanding Work + Audit Session Commits
 
 All work should be committed before closing. Uncommitted changes are the #1 cause of "what was I doing?" when restarting.
@@ -414,7 +416,7 @@ if [ -f "CHANGELOG.md" ]; then
 fi
 ```
 
-**Present the summary to the user:**
+**Present the summary to the user.** Write it for a reader who watched none of the session: lead with what shipped, in plain sentences, and spell out identifiers — no session shorthand, arrow chains, or labels invented mid-conversation. This summary (and the closeout commit body) is the next session's first look at everything.
 
 **Session Closeout Summary**
 
@@ -430,7 +432,7 @@ fi
    - **CHANGELOG Unreleased entries:** `$UNRELEASED_LINES` — if 0 and this session touched user-facing code, flag as missed.
    - **Conventional Commits compliance:** [result from Phase 2.2 audit]
 7. **Handoff state:** branch pushed? PR open/updated (link)? — or "no remote" if the repo has none
-8. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing?]
+8. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing? Cite the session's most recent gate run; re-run only if commits landed after it]
 
 **If the user is about to merge a PR from this branch:** remind them of the 10-minute cool-down (per `DEFAULTS-ADR-0001`). The CI `pr-age-check` job will block merge for PRs under 10 minutes old, but the habit is to close Claude, get water, come back, and re-read the diff. Don't merge in the same minute you push.
 

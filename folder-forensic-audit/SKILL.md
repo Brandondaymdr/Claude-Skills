@@ -52,6 +52,8 @@ Agents:
 
 See `agents/` directory for subagent definitions. Note these files are prompt definitions local to this skill — they are **not** auto-registered agent types (only `.claude/agents/` is). Spawn each auditor as a general-purpose agent, passing the definition file's body as its prompt, and synthesize the five reports into one. In sessions where the Workflow tool is available, the auditors can instead run as a single parallel workflow — but only with the user's explicit opt-in to multi-agent orchestration.
 
+**Delegation cap:** the five domain auditors are the ceiling, not the floor. Default to single-agent mode; reach for the team only on large repos where parallel reads genuinely pay. Never add verifier or double-check agents on top of the auditors — synthesis is where findings get evidence-checked and deduped, in the main loop. (Current Opus models delegate readily; unmanaged, an audit multiplies into dozens of agents for no recall gain.)
+
 ## The Audit Phases
 
 Whether running single-agent or multi-agent, these are the domains to investigate.
@@ -436,6 +438,8 @@ gitleaks git . --verbose --redact 2>&1 | tail -15 || echo "gitleaks not installe
 ## Producing the Audit Report
 
 After all phases, produce a structured report.
+
+**Coverage first, filtering second.** Report every finding, including ones you're uncertain about or consider minor — tag each with severity *and* confidence, and let prioritization happen in the report's recommendation ranking, not by silently dropping findings during investigation. Current models follow "only report what matters" instructions literally, which suppresses real findings; the user prioritizes, the audit surfaces.
 
 The canonical report structure and scoring guide live in `references/report-template.md` — executive summary, severity summary, findings grouped by severity (issue / impact / fix), prioritized recommendations, and a 9-dimension weighted health scorecard (100 points; non-AI projects renormalize to 85). Numeric scores are the source of truth; letter grades (A ≥90, B 75–89, C 60–74, D 40–59, F <40) are for quick scanning.
 
