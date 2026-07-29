@@ -1,6 +1,6 @@
 # Claude-Skills
 
-Brandon's personal Claude Code skills repo. Each top-level directory is one skill (`SKILL.md` + optional `references/`, `templates/`, `agents/`).
+Brandon's personal Claude Code skills repo. Each top-level directory is one skill (`SKILL.md` + optional `references/`, `templates/`, `agents/`) — except `rules/`, which holds global Claude Code rules (the discipline layer) that each machine symlinks into `~/.claude/rules/` (install one-liner in `rules/README.md`; `~/.claude/rules` is NOT a git repo, so edits go through this repo's PR flow, never in place).
 
 ## ⚠️ This repo IS the live install
 
@@ -36,6 +36,8 @@ Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 
 ## Root documents
 
+- `OPUS5-FABLE5-PLAYBOOK.md` — how to run the session/project skills with the Claude 5-family models; written alongside the 2026-07-29 tuning pass (scope discipline, no ritual re-verification, delegation caps).
+- `rules/discipline.md` — canonical copy of the global discipline layer (see the exception note at the top of this file).
 - `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot, cool-down). Becomes ADR 0001 of the future `project-template` repo.
 - `WORKFLOW-GOLDEN-PATH.md` — the one-page feature workflow; copied to `docs/WORKFLOW.md` in scaffolded projects.
 - `SESSION-SUMMARY*.md` — closeout artifacts from major sessions.
