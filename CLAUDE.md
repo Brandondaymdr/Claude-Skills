@@ -32,6 +32,10 @@ Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 - `folder-forensic-audit` — diagnostic audit (Phases 1–5) + prescriptive Conformance Mode (Phase 6)
 - `fleet-init` — bootstrap a Fleet autonomous-build pipeline (`templates/` are the canonical Fleet scripts; `PARAMETERS.md` defines the `{{PLACEHOLDER}}` substitution contract)
 
+**Cross-project standards:**
+
+- `days-design-system` — the HOUSE design layer for every project: the token contract, interaction honesty ("looks like a link → acts like a link"), measured contrast (`references/contrast.py`), the only-define-what-you-render rule, and how to verify a visual change given that CSS is invisible to typecheck/lint/tests/build. A project with its own design source (ShoreStack's `docs/DESIGN-SYSTEM.md`, `cheersworthy-*`, `whiskeysomm-brand`) overrides it on specifics; it still governs method. Pairs with `frontend-design`, which supplies creative direction for greenfield work.
+
 **Domain skills** (client/product work): `beehiiv*` (WhiskeyTribe newsletter), `cheersworthy-*` (Shopify spirits store), `circle-so-*` (Carla Gentile Yoga community), `obsidian-*` (vault management), `sai-process-sketch` (SAI Student Portal stakeholder sketches), `shopify-*`, `toast-*` (POS), plus `adobe-premiere`, `frontend-design`, `instagram`, `internal-comms`, `n8n`, `photoshop-thumbnails`, `slack-comms-builder`, `video`, `whiskeysomm-brand`, `youtube-channel`.
 
 ## Root documents
