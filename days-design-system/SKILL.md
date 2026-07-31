@@ -38,19 +38,36 @@ keeps it honest and verifiable.
 
 ---
 
-## 1. The house aesthetic (the default, not a straitjacket)
+## 1. There is no single house look — and that's deliberate
 
-Applies when a project hasn't decided otherwise. Brandon's built work leans one
-way consistently, so start here and deviate on purpose:
+**Do not import one project's aesthetic into another.** The existing work
+spans a real range, and each choice fits its product:
 
-- **Flat.** Borders, not shadows. A 1px hairline at ~10–15% of the ink colour
-  is how you separate things; `box-shadow` is a last resort, not a default.
-- **Sharp.** 0–4px radii. Never `rounded-lg` everywhere as a reflex.
+| | Radius | Depth |
+| --- | --- | --- |
+| ShoreStack | 0–2px, sharp | borders only, no shadows |
+| Cheersworthy | 4px | no shadow |
+| WhiskeySomm | 12–20px | warm `box-shadow` |
+
+A B2B agent substrate should not look like a warm consumer whiskey app. If you
+catch yourself applying sharp corners and hairline borders to a project because
+that's what the last one used, stop and read that project's design source.
+
+What *is* house-wide is the short list below. These hold regardless of how
+sharp or soft the surface is:
+
 - **One accent.** A single colour carries interactive intent. Not three.
-- **Roomy.** Generous whitespace and a clear type hierarchy beat borders and
-  boxes for structure.
-- **Quiet until it points.** Motion is functional: 0.12–0.2s on colour, border,
-  and small transforms. No page-load choreography, no parallax.
+- **Structure comes from space and type first**, boxes and rules second. If a
+  layout needs more hierarchy, reach for whitespace and the type scale before
+  adding another bordered container.
+- **Motion is functional** — 0.12–0.2s on colour, border and small transforms,
+  in service of feedback. No page-load choreography, no parallax.
+- **Consistency within a project beats cleverness in one screen.** A new
+  pattern is a decision about the whole app; make it once and apply it.
+
+**For a project with no design source at all**, pick a direction deliberately
+(load `frontend-design` for that) and write it down as you go — then §2–§7
+apply to whatever you chose.
 
 ---
 
