@@ -4,6 +4,10 @@
 # Tuned 2026-07-29 for Opus 5 / Fable 5: these models verify their own work
 # natively but expand task scope — so this file gates CLAIMS and SCOPE, and
 # deliberately does not mandate extra verification passes.
+# Extended 2026-08-04 with the RELEVANCE gate: the claim/scope layers both
+# assume the work item is worth doing, and a session proved that assumption can
+# be false while every downstream check passes. Relevance is gated FIRST,
+# because rigor applied to unreachable code is what makes the mistake expensive.
 
 ## Scope Discipline (read this first)
 
@@ -11,10 +15,34 @@ Deliver what the user asked for, at the scope they intended. Interpret ambiguity
 
 Within a session skill this means: run the phases on the work that happened, and nothing else. A closeout is not a refactor window; a restart is not a fix-it sweep; an audit reports, it doesn't repair (conformance mode is the opt-in repair path). Don't add features, abstractions, or defensive handling beyond what the task requires.
 
+## Relevance Gate (run BEFORE the first edit)
+
+Everything else in this file validates that a change is **correct**. Nothing else in it asks whether the change **matters**. The Iron Laws, the verification gates and adversarial review all point *downstream* of a premise they never check — so when the premise is wrong, rigor makes the session more expensive, not safer. Check the premise first, in writing, before touching code.
+
+**Can a user reach this on the shipping build?** Answer `yes` / `no` / `unknown` in one line, naming the evidence, before the first edit.
+
+Look for the gates that *decide* reachability, not just the code that renders it:
+
+- platform and feature gates — `if (IS_DESKTOP) return null`, tier gates, hidden-tab lists
+- shell constraints — a `minWidth` in the app shell can put a responsive breakpoint permanently out of range
+- whether the entry point that CREATES the data still exists — a review surface for records nothing can produce is unreachable
+- build targets — a surface alive in a deprecated web bundle is not alive in the desktop app you ship
+
+If the answer is **`no`**: log it as debt, with the evidence, and STOP. Do not fix it, review it, or guard it. A correct, well-guarded fix to unreachable code costs a whole session and ships nothing. If **`unknown`**: resolve it before starting, not after.
+
+**A finding is not a work item.** Static sweeps, audits and greps produce findings — "this call site lacks a prop", "this file has no guard". A sweep can prove a prop is missing; it can never prove the code runs. A finding earns a queue slot and a severity only once a reachability answer is attached to it. Inherited items carry the same burden: precision in someone else's write-up — a defect ID, exact `file:line`, confident phrasing — is evidence that someone was *specific*, never that they asked this question. Read such notes for the claim they actually make ("the dropdown is dead" is not "the surface is unreachable").
+
+**State the goal as a user-visible outcome, not a code finding.** "A user can print a Trial Balance" beats "fix D105/D106". A finding can be true and worthless; an outcome cannot.
+
+**When a review expands scope, narrow by default.** Reviewer findings on an unreachable or dormant path get LOGGED, not built. Expansion needs a reachable target and the user's explicit call — a defensible technical argument alone is not enough. Reviewers inherit your premise and will confirm it with confidence; a reviewer agreeing that a surface is reachable is not verification that it is.
+
+**Don't offer adjacent work mid-task.** Anything you notice goes into the project's plan or backlog for the user to schedule. Every mid-task offer is a fork in the road handed to someone trying to hold one line.
+
 ## Iron Laws
 
 These are non-negotiable. Violating the letter of these rules IS violating the spirit.
 
+- **NO WORK ON UNREACHABLE CODE.** Before the first edit on any work item, state whether a user can reach the surface on the shipping build, and name the evidence. `no` → log it as debt and stop. **This law outranks every other law here**, because adversarial review, mutation batteries and completion claims applied to code nobody can execute are pure cost — the more faithfully you follow the rest of this file, the more expensive the mistake becomes. (Learned 2026-08-04: a session fixed two storeless dropdowns, ran two adversarial reviewers, extracted a shared module and killed a 25-mutant battery — then discovered a `minWidth: 900` against a 768px breakpoint, plus an `if (IS_DESKTOP) return null` on the feature that creates the data, put **both** surfaces out of reach. The check that would have prevented all of it was two greps. Neither the author nor an adversarial reviewer ran it; both read the breakpoint and stopped.)
 - **NO SESSION ENDS WITHOUT A COMMITTED STATE.** Uncommitted work is invisible to future sessions. If context compacts or the session crashes, anything not committed ceases to exist.
 - **NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE.** Before stating that tests pass, a build succeeded, or a health check is clean — run the actual command, read the full output, and cite it. The words "should," "probably," and "seems to" are red flags that verification hasn't happened. **This law gates claims, not activity:** one gate run per completed change is the requirement — cite it. Do not add extra self-check or double-check passes, and do not re-run gates that are already green with no commits since. The current models self-verify natively; instructed re-verification produces loops, not safety.
 - **NO SKIPPING PHASES.** Each skill defines a sequence for a reason. If a phase feels unnecessary, that's a signal to execute it faster — not to skip it. Depth scales to what the session touched: "faster" can legitimately mean one sentence for a phase with nothing in it. Quick execution of all phases beats thorough execution of some phases.
@@ -24,6 +52,18 @@ These are non-negotiable. Violating the letter of these rules IS violating the s
 ## Anti-Rationalization Reference
 
 When executing any of the 5 session skills, watch for these internal rationalizations and counter them immediately:
+
+### Relevance Rationalizations
+
+| If you're thinking... | The reality is... |
+|---|---|
+| "It's the next item in the queue, so it's been vetted" | A queue holds what someone wrote down, not what someone validated. Ask the reachability question yourself, every time. |
+| "The write-up names an exact file:line — the analysis is done" | Specificity proves someone was precise, not that they asked whether the code runs. Precision is the most convincing disguise an unvetted premise has. |
+| "I read the component and I know when it renders" | You learned when it renders *given a state*. You have not checked whether that state can occur — that answer usually lives in the app shell or a feature gate, in a different file. |
+| "The reviewer confirmed it's reachable" | Reviewers inherit your premise. A reviewer that repeats your assumption with more confidence has multiplied it, not tested it. |
+| "It's a small fix — cheaper to just do it than to check" | The fix is never what costs the session; the review, guards, mutation battery and closeout around it are. Ten seconds of checking gates all of that. |
+| "It's dead code today, but it's a landmine if the gate ever changes" | Then it is DEBT, and debt gets logged with its evidence — not fixed, reviewed and guarded ahead of work users can reach. |
+| "While I'm in here I should also mention..." | That's a fork handed to someone holding one line. It goes in the backlog, not the conversation. |
 
 ### Checkpoint & Closeout Rationalizations
 
@@ -80,6 +120,8 @@ Before claiming any of the following, you MUST have run the command and read the
 
 | Claim | Required Evidence |
 |---|---|
+| "This item is worth doing" | The reachability answer, with the gate that decides it quoted at `file:line` (the platform gate, the shell constraint, the entry point that creates the data). Required BEFORE the first edit, not at closeout. |
+| "This surface is reachable by \<some user action\>" | The action actually performed, or the constraint read out of the shell/app config. Reading the component's own breakpoint is NOT evidence that the breakpoint can be crossed. |
 | "Tests pass" | Actual test runner output showing pass count and 0 failures |
 | "Build succeeds" | Actual build command output with no errors |
 | "Lint is clean" | Actual linter output with 0 warnings/errors |
@@ -115,5 +157,6 @@ Violating the letter of these rules IS violating the spirit. Specifically:
 - "I'm following the spirit of the audit by spot-checking" — No. Run all 5 audit domains.
 - "I'm following the spirit of adversarial review by reviewing it carefully myself" — No. Independent means a reviewer that did not write the change and does not share your assumptions. You cannot audit your own blind spot.
 - "I'm following the spirit of the review rule by noting it wasn't reviewed" — No. Disclosure is not review. Run it, or stop and ask.
+- "I'm following the spirit of the relevance gate by checking reachability once I'd finished" — No. The gate exists to stop work, and work you've already done cannot be stopped. It runs before the first edit or it did nothing.
 
 The spirit of these skills IS the letter. The process is the value.
