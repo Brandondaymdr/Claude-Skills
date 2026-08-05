@@ -7,8 +7,8 @@ description: >
   clean up the disk, or asks what's eating storage. Also trigger for "storage is full
   again", "clean my mac", "disk cleanup", or when the macOS Storage settings pane shows
   large System Data or Documents categories. Contains machine-specific hot spots,
-  Fleet-safety exclusions, and verified safe-delete commands from the July 2026 cleanups
-  (7/4: ~26 GB recovered; 7/28: ~14 GB recovered).
+  Fleet-safety exclusions, and verified safe-delete commands from the 2026 cleanups
+  (7/4: ~26 GB recovered; 7/28: ~14 GB; 8/5: ~30 GB).
 ---
 
 # Mac Mini Disk Cleanup
@@ -58,6 +58,8 @@ Safe to delete — all rebuild automatically:
 
 | Location | Typical size | Command / notes |
 |---|---|---|
+| shorestack monorepo `.turbo/cache` | up to 19 GB | `rm -rf ~/Projects/DaysLLC/shorestack/.turbo/cache` — Turborepo local build cache, the biggest regrower on the machine (8/5: 19 GB, 1,569 entries). If a shorestack session is active, keep its warm cache: `find .turbo/cache -type f -mtime +1 -delete` (recovered 13 of the 19 GB). |
+| shorestack monorepo `apps/*/.next` | 3–4 GB | `rm -rf apps/*/.next` (six apps, ~0.5 GB each) — only when no dev server is running; rebuilds on next `dev`/`build`. |
 | Tauri `src-tauri/target/debug` (reel, books) | 8–12 GB | `rm -rf .../target/debug`. **KEEP `target/release`** — it keeps dmg release builds incremental. Next dev build recompiles ~500 crates (~3–5 min); that is normal, not a broken toolchain. |
 | `~/Library/pnpm` (pnpm store) | 5–7 GB | `pnpm store prune` (keeps packages active projects use — partial shrink is correct) |
 | `~/.npm` (npm cache) | 2–8 GB | `npm cache clean --force` |
@@ -67,8 +69,10 @@ Safe to delete — all rebuild automatically:
 
 Review before touching:
 
-- **Claude app data** (`~/Library/Application Support/Claude`, ~11 GB): mostly Cowork
-  local-agent sessions AND the local mirror of the claude.ai Skills library
+- **Claude app data** (`~/Library/Application Support/Claude`, ~12 GB): the bulk is
+  `vm_bundles/claudevm.bundle` (~9 GB) — the LIVE Cowork VM image, actively mtime-updated
+  while the Claude app runs; never delete it. The rest is Cowork local-agent sessions AND
+  the local mirror of the claude.ai Skills library
   (`.../local-agent-mode-sessions/skills-plugin/...`). Clear old sessions via the
   Claude app UI, never blanket `rm`.
 - **Rust toolchain** (`~/.rustup`, `~/.cargo`): Brandon USES Rust — keep.
@@ -118,6 +122,7 @@ minutes. First builds after cache deletion are slower once.
 |---|---|---|
 | 2026-07-04 | 4.6 GB → 31 GB free (~26 GB) | Cowork session; npm 7.6G, pnpm, caches, Android SDK removed |
 | 2026-07-28 | 18 GiB → 32 GiB free (~14 GB) | Claude Code; reel target/debug 8.9G, npm 1.9G, pnpm prune 1.4G, dormant node_modules ~1.5G, caches ~1.9G |
+| 2026-08-05 | 6.4 GiB → 37 GiB free (~30 GB) | Claude Code; shorestack monorepo `.turbo/cache` 19G (new #1 hot spot), books target/debug 4.2G, `apps/*/.next` 3.3G, npm + Caches ~1.5G. `pnpm store prune` removed 0 packages (all in use — correct). Identified `vm_bundles/claudevm.bundle` 9.2G as live/untouchable. |
 
 ## Ground rules
 
