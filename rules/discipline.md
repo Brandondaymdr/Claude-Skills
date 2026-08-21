@@ -8,12 +8,28 @@
 # assume the work item is worth doing, and a session proved that assumption can
 # be false while every downstream check passes. Relevance is gated FIRST,
 # because rigor applied to unreachable code is what makes the mistake expensive.
+# Extended 2026-08-21 with the SESSION CONTRACT: every session states Build
+# (≤3 items) / Done-looks-like / Tee-up in writing before the first edit, caps
+# the build at three, reviews before teeing up, and tees up 1–3 for the next
+# session (ADR-0039 in the shorestack monorepo is where the cadence was born).
 
 ## Scope Discipline (read this first)
 
 Deliver what the user asked for, at the scope they intended. Interpret ambiguity the way a careful colleague would: make routine judgment calls yourself, and check in only when different readings would lead to materially different work. If you conclude the ask is mistaken or a better approach exists, say so in a sentence and keep going with the task as asked — don't quietly narrow, widen, or transform it. Finish the whole task, not just the easy part of it — only report completion when it's fully done. If you genuinely can't complete something, do the rest and state plainly what's missing and why. Stop short of actions or changes that are clearly beyond what the user's ask implies.
 
 Within a session skill this means: run the phases on the work that happened, and nothing else. A closeout is not a refactor window; a restart is not a fix-it sweep; an audit reports, it doesn't repair (conformance mode is the opt-in repair path). Don't add features, abstractions, or defensive handling beyond what the task requires.
+
+## Session Contract (state it before the first edit)
+
+Every working session opens with a written contract, in the session brief, before any file changes:
+
+- **Build** — at most **three** items, each PR-sized or smaller. Name them.
+- **Done looks like** — one verifiable sentence per item: the command, the smoke, or the artifact that proves it. "Implemented" is not a done-criterion; "`pnpm test` green with the new fixture red-then-green" is.
+- **Tee-up** — what the closeout will hand the next session (drafted now, finalised at closeout).
+
+Then hold to it: a **fourth item is not started** in that session even if time remains — the time goes to review. **Review before tee-up:** each item gets the verification its class requires (the session gate for ordinary items; independent adversarial reviewers for engine/money-path/wide-diff items per the Iron Laws), and the result is cited. **Tee up 1–3 items** in the closeout commit, each with its own done-criterion drafted. Anything noticed that is not one of the session's items goes to the project's FOLLOWUPS/backlog — never into scope, never offered mid-task (see Relevance Gate).
+
+Restart and closeout already carry the 1–3 shape ("Recommended priorities", "Next session should"); this section adds the done-criterion, the hard cap, and review-before-tee-up. If the user hands over more than three items, state the contract for the first three and list the rest as the queue — do not silently take on all of them.
 
 ## Relevance Gate (run BEFORE the first edit)
 
@@ -72,6 +88,8 @@ When executing any of the 5 session skills, watch for these internal rationaliza
 | "I'll commit later" | Context compaction can happen without warning. Commit now. |
 | "These changes are too small to save" | Small changes are the easiest to lose and hardest to recreate from memory. |
 | "I'm about to finish anyway" | Sessions end unexpectedly more often than they end cleanly. |
+| "There's time left — I'll start a fourth item" | The cap is the point. Spare time is review time; a fourth item is scope the contract never had. |
+| "I'll define done when I get there" | Done defined after the fact is whatever you ended up with. It is written before the first edit or it gates nothing. |
 | "The user didn't ask for a checkpoint" | The user shouldn't have to. If 30+ minutes have passed or a subtask completed, checkpoint. |
 | "Updating CLAUDE.md isn't necessary this time" | If you learned something that would surprise a fresh session, it goes in CLAUDE.md. |
 | "I can summarize the session from memory" | Memory is unreliable. Git log and diffs are evidence. Base the closeout summary on artifacts, not recall. |
