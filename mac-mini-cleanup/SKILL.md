@@ -32,6 +32,14 @@ there or the two will drift.
   app caches, and Claude/Cowork session data.
 - `df -h /` shows the sealed system volume; use `df -h /System/Volumes/Data` for real
   free space.
+- **Local Time Machine snapshots can swallow the whole cleanup.** When the TM disk
+  ("B Vault 1") isn't connected, macOS keeps hourly local APFS snapshots. They count as
+  "used" in `df`, and any file you delete that existed when a snapshot was taken stays
+  on disk until the snapshot is thinned. 8/22: 25 snapshots held ~60 GB AND ~13 GB of
+  fresh deletions — `df` didn't move until `tmutil thinlocalsnapshots / 999999999999 4`
+  ran (15 → 71 GiB free). Check `tmutil listlocalsnapshots /` in Step 1; if there are
+  more than a handful, plan to thin AFTER the deletes (with approval — it's a backup
+  artifact, though B Vault 1 holds the real backup and snapshots resume hourly).
 
 ## ⚠️ Fleet safety — read before deleting anything in ~/Projects
 
@@ -48,7 +56,12 @@ du -xsh ~/Projects/* ~/Library ~/.npm ~/Library/pnpm 2>/dev/null | sort -rh
 du -xsh ~/Library/Application\ Support/* 2>/dev/null | sort -rh | head -15
 du -xsh ~/Library/Caches/* 2>/dev/null | sort -rh | head -10
 find ~/Projects -type d \( -name target -o -name node_modules \) -prune -exec du -sh {} + 2>/dev/null | sort -rh | head -15
+tmutil listlocalsnapshots / | grep -c TimeMachine        # >5 → snapshots are holding space
+du -xsh ~/Desktop/* /Library/Developer/* 2>/dev/null | sort -rh | head   # 8/22 sleepers: Desktop/Storage video, sim dyld cache
 ```
+
+Sanity check the totals: if `/Users` + `/Library` + `/Applications` + `/private/var` is far
+below `df` "used", the gap is local snapshots.
 
 Deep `du` over home is slow (minutes) — raise the Bash timeout, don't assume a hang.
 
@@ -66,6 +79,9 @@ Safe to delete — all rebuild automatically:
 | `node_modules` in dormant projects | 1–5 GB | see Step 3 |
 | `~/Library/Caches/{Google,pnpm,node-gyp}` | ~1.5 GB | `rm -rf` directly |
 | Adobe caches (`~/Library/Caches/com.adobe.*`, Premiere media cache in App Support) | 0.5–1 GB | `pgrep -lif premiere` first — only when Adobe apps are closed |
+| Chrome `OptGuideOnDeviceModel` (Gemini Nano on-device model) | 4 GB | `rm -rf ~/Library/Application\ Support/Google/Chrome/OptGuideOnDeviceModel` — Chrome closed; re-downloads unless disabled in `chrome://flags` |
+| `/Library/Developer/CoreSimulator/Caches/dyld` (simulator dyld cache) | 9 GB | root-owned: Brandon runs `sudo rm -rf /Library/Developer/CoreSimulator/Caches/dyld` with `!`; regenerates on next sim boot. Declined 8/22 — still there. |
+| GoogleUpdater `crx_cache` + `~/Library/Logs/{CreativeCloud,Adobe}` | ~1 GB | `rm -rf` directly |
 
 Review before touching:
 
@@ -80,6 +96,9 @@ Review before touching:
   iOS DeviceSupport for the current iPhone iOS version, Archives only >90 days with
   confirmation.
 - **`~/Projects`**: active business projects. Never delete source; strip artifacts.
+- **`~/Desktop/Storage/Video Compress`** (8/22: 37 GB): a 31 GB `A017_03101936_C113.mov`
+  source next to its 5.3 GB `.mp4`. User media — ask; Brandon declined deleting the .mov
+  on 8/22. Candidate for the external HD.
 
 ## Step 3: node_modules in dormant projects
 
@@ -124,6 +143,7 @@ minutes. First builds after cache deletion are slower once.
 | 2026-07-28 | 18 GiB → 32 GiB free (~14 GB) | Claude Code; reel target/debug 8.9G, npm 1.9G, pnpm prune 1.4G, dormant node_modules ~1.5G, caches ~1.9G |
 | 2026-08-05 | 6.4 GiB → 37 GiB free (~30 GB) | Claude Code; shorestack monorepo `.turbo/cache` 19G (new #1 hot spot), books target/debug 4.2G, `apps/*/.next` 3.3G, npm + Caches ~1.5G. `pnpm store prune` removed 0 packages (all in use — correct). Identified `vm_bundles/claudevm.bundle` 9.2G as live/untouchable. |
 | 2026-08-12 | 3.9 GiB → 35 GiB free (~31 GB) | Claude Code; this time `~/Library` dominated (52G), not Projects. Erased 4 fat simulators 8.6G (`xcrun simctl erase <udid>` — iPhone 17 Pro/Max 26.4 + both iPad Pro 13"; Brandon approved), books target/debug 7.1G, stale iOS DeviceSupport 26.4.2 5.7G (approved), Adobe `Common/Media Cache Files`+Peak+Analyzer 5.1G, `.next` sweep 3.9G, DerivedData minus the active ShoreStackDashboard project ~1G, npm 1G. `.turbo/cache` was EMPTY; `pnpm store prune` removed 0 again. Pair with the `xcode-cleanup` skill when `~/Library/Developer` is big — sims + DeviceSupport were the sleepers here. |
+| 2026-08-22 | 15 GiB → 71 GiB free (~56 GB) | Claude Code; the win was **25 local TM snapshots (~60 GB)** — files: books target/debug 5.9G, Chrome OptGuideOnDeviceModel 4.0G, npm 1.2G, `.next` ×8 ~1.2G, GoogleUpdater crx_cache 0.7G, Adobe logs 0.3G ≈ 13G, but `df` did NOT move until `tmutil thinlocalsnapshots` ran. `.turbo/cache` 20M, `pnpm store prune` 0 again, no dormant repos had node_modules. Declined (still on disk): 31G `.mov` on Desktop/Storage, 9.1G sim dyld cache (sudo). |
 
 ## Ground rules
 
