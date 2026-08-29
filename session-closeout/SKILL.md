@@ -360,21 +360,23 @@ Don't be overly aggressive — some TODOs and console.logs are intentional. But 
 
 ### Phase 7: Session Summary & Handoff
 
-Create a final commit that captures the closeout updates (`chore(scope):` prefix mandatory — even the closeout commit conforms):
+Create a final commit that captures the closeout updates (`chore(scope):` prefix mandatory — even the closeout commit conforms).
+
+**The tee-up is the contract for the next session.** `session-restart` presents these items verbatim as the next session's Build list, so each one must carry a drafted done-criterion — the command, smoke test, or artifact that will prove it. An item teed up without a done-criterion gates nothing; "finish the feature" is a wish, "`pnpm test` green with the new fixture red-then-green" is a contract. Tee up 1–3 items, no more — and only after each of *this* session's completed items has its verification cited (the review-before-tee-up rule).
 
 ```bash
 git add -A
 git commit -m "chore(closeout): session closeout — update docs and project state
 
 Summary of this session:
-- [What was accomplished]
+- [What was accomplished — with the verification cited per item]
 - [What's in progress]
 - [What's blocked or needs attention]
 
-Next session should:
-- [Priority 1]
-- [Priority 2]
-- [Priority 3]"
+Tee-up — next session should (1-3 items, each with its done-criterion):
+- [Item 1] — done when: [the command, smoke, or artifact that proves it]
+- [Item 2] — done when: [...]
+- [Item 3] — done when: [...]"
 ```
 
 **Then push — a closeout that only exists locally defeats the handoff.** Another machine or teammate pulling the repo sees none of it, and the session summary is stranded on this machine (in a multi-machine setup this is exactly how work goes missing).
@@ -424,7 +426,7 @@ fi
 2. **In progress:** [any WIP with status]
 3. **Updated documentation:** [which docs were updated]
 4. **Discovered issues:** [bugs found, gotchas, tech debt]
-5. **Recommended next steps:** [prioritized list for next session]
+5. **Tee-up for next session:** [1–3 items, each as `[Item] — done when: [verifiable criterion]`, mirroring the closeout commit — session-restart will present these as the next session's contract]
 6. **Operational metrics:**
    - **Eval pass rate:** `$LATEST_PASSED/$LATEST_TOTAL` (delta vs previous: `$LATEST_SCORE - $PREVIOUS_SCORE`) — flag prominently if regression.
    - **CI status:** `$CI_STATUS` on branch `<branch>`. If red or pending, tell the user: "Don't merge until green."
@@ -454,7 +456,7 @@ This skill is designed to create a clean handoff for the `session-restart` skill
 - Clean git state (committed or stashed, not uncommitted)
 - Up-to-date CLAUDE.md reflecting current project state
 - WIP commits with clear status/next-steps messages
-- A recent closeout commit with session summary
+- A recent closeout commit with session summary and a tee-up of 1–3 items, each with a drafted done-criterion — restart opens the next session with these as its contract
 
 When closeout is done well, restart takes seconds instead of minutes.
 
@@ -464,7 +466,7 @@ If the user is in a hurry, run a minimal closeout:
 
 1. `git add -A && git commit -m "wip: [brief status]"` — commit everything
 2. Add one line to CLAUDE.md under Gotchas if anything critical was discovered
-3. Tell the user what the next session should start with
+3. Tell the user what the next session should start with — even in a hurry, give the top item a done-criterion (one clause: what command or artifact proves it)
 
 Even a 30-second closeout is better than no closeout. The goal is to never leave a session with uncommitted work and no breadcrumbs.
 

@@ -52,7 +52,8 @@ Run through this at the end of every session. Check items as you go.
 - [ ] Completed work listed
 - [ ] In-progress work documented with status
 - [ ] Blockers and discovered issues noted
-- [ ] Next session priorities identified (top 3)
+- [ ] Tee-up written: 1–3 next-session items, each with a drafted done-criterion (`[Item] — done when: [verifiable check]`) — restart presents these as the next session's contract
+- [ ] Review before tee-up: each completed item's verification cited (not "implemented")
 - [ ] Project health assessed (tests passing, docs current, folder clean)
 
 ## Quick Closeout (Minimum Viable)

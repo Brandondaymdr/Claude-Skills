@@ -99,7 +99,7 @@ git log --all -1 --grep="chore(closeout)" --format="%B" 2>/dev/null
 git log --oneline --all --grep="closeout" | head -3
 ```
 
-If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, next session priorities, and discovered issues. This is gold — use it as the primary briefing source.
+If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, the tee-up (next-session items with drafted done-criteria), and discovered issues. This is gold — use it as the primary briefing source. The tee-up items in particular are the **draft of this session's contract**: carry them into the Phase 4 briefing with their done-criteria intact, don't re-derive them from scratch.
 
 #### Sync Fleet Build Queue (Fleet projects only)
 
@@ -251,7 +251,14 @@ Flag anything that needs immediate attention before development continues.
 
 ### Phase 4: Session Briefing
 
-Present a concise briefing to the user:
+Present a concise briefing to the user. Its centerpiece is the **session contract**: the (at most) three items this session will build, each with how it will be approached and a verifiable done-criterion, plus the commitment to tee up the next session at closeout.
+
+**Source the contract items in this order:**
+1. The last closeout's tee-up (primary — those items already have drafted done-criteria; carry them forward)
+2. The project's goal (CLAUDE.md, roadmap/launch-plan docs) when the tee-up is missing, stale, or thinner than three items
+3. Anything urgent the health check surfaced (red CI, eval regression) — these can displace a teed-up item, and say so when they do
+
+Whatever the user asked for on the way in overrides all three. If no closeout tee-up exists, derive the items and say so — don't present inferred items as if they were teed up.
 
 ---
 
@@ -268,10 +275,18 @@ Present a concise briefing to the user:
 - [WIP item 1 — status and what's left]
 - [WIP item 2 — status and what's left]
 
-**Recommended priorities for this session:**
-1. [Priority 1 — why this first]
-2. [Priority 2]
-3. [Priority 3]
+**Session contract (Build — at most 3 items, from the last closeout's tee-up + project goal):**
+1. **[Item 1]** — [why this first / where it came from: teed up last session, project goal, or health-check escalation]
+   - *How:* [one-line approach — the files/areas in play and the shape of the change]
+   - *Done looks like:* [the command, smoke test, or artifact that proves it — "implemented" is not a done-criterion; "`pnpm test` green with the new fixture red-then-green" is]
+2. **[Item 2]** — [...]
+   - *How:* [...]
+   - *Done looks like:* [...]
+3. **[Item 3]** — [...]
+   - *How:* [...]
+   - *Done looks like:* [...]
+
+**Tee-up commitment:** at closeout, this session will tee up 1–3 items for the next session, each with its own done-criterion drafted, in the closeout commit — so the next restart opens with its contract already written.
 
 **Heads up:**
 - [Any gotchas, blockers, or external changes to be aware of]
@@ -280,7 +295,12 @@ Present a concise briefing to the user:
 
 ### Phase 5: Ready to Work
 
-After the briefing, ask the user what they want to focus on. Offer the recommended priorities but don't assume — they might have new priorities.
+After the briefing, confirm the contract with the user — they may swap, reorder, or replace items, and their call wins. Once confirmed, the contract is locked for the session:
+
+- **The cap is three.** A fourth item is not started even if time remains — spare time goes to review.
+- **Anything noticed mid-session that isn't a contract item** goes to the project's FOLLOWUPS/backlog (or the closeout's discovered-issues list), never into scope and never offered as a mid-task fork.
+- **If the user hands over more than three items**, take the first three as the contract and list the rest as the queue — don't silently absorb all of them.
+- **Each item gets its done-criterion checked before tee-up** — closeout cites the verification, not "implemented."
 
 If there's WIP to resume:
 - Offer to show the diff of the WIP commit
@@ -288,10 +308,10 @@ If there's WIP to resume:
 - Suggest picking up exactly where they left off
 
 If the project is clean (no WIP):
-- Present the recommended priorities from the closeout
-- Ask if they want to start a new feature, fix a bug, or work on something else
+- The contract items stand as briefed — start on item 1 once confirmed
+- If the user wants something else entirely, that becomes the contract (restated with done-criteria) and the teed-up items stay queued
 
-**Then compose the session brief.** Current models (Opus 5, Fable 5) do their best work from one complete task specification given up front, not from instructions drip-fed across turns. Once the user picks a focus, turn it into a full spec before starting: the goal, the constraints, which files/areas are in play, and what "done" looks like (tests passing, PR open, docs updated). One well-specified opening brief beats ten corrective follow-ups — it is the single biggest quality lever these models have. If the user's ask is already complete, start; don't interview them.
+**Then compose the session brief.** Current models (Opus 5, Fable 5) do their best work from one complete task specification given up front, not from instructions drip-fed across turns. Once the contract is confirmed, expand each item into a full spec before starting: the goal, the constraints, which files/areas are in play, and the done-criterion from the contract (tests passing, PR open, docs updated). One well-specified opening brief beats ten corrective follow-ups — it is the single biggest quality lever these models have. If the contract items are already fully specified, start; don't interview the user.
 
 ## Handling Messy State
 
@@ -345,7 +365,7 @@ This skill is the complement of `session-closeout`. When closeout is run properl
 
 - Git state will be clean (all work committed or stashed)
 - CLAUDE.md will be current
-- A closeout commit will contain a full session summary with next steps
+- A closeout commit will contain a full session summary with a tee-up: 1–3 next-session items, each with a drafted done-criterion
 - WIP commits will have clear status/next-steps in their messages
 
 When closeout wasn't run, this skill degrades gracefully — it reads git state, infers what was happening, and presents the best briefing it can. But the quality of the restart is directly proportional to the quality of the previous closeout.

@@ -47,11 +47,15 @@ Scale to time away; skip checks that don't apply — don't report N/A rows.
 - [ ] Summarize last session's work
 - [ ] Report current state (branch, status, health)
 - [ ] List pending/in-progress work
-- [ ] Recommend top 3 priorities for this session
+- [ ] Present the session contract: at most 3 Build items, sourced from the last closeout's tee-up first, project goal second, health-check escalations third (user's ask overrides all)
+- [ ] Each contract item has a *How* (one-line approach) and a *Done looks like* (the command, smoke, or artifact that proves it — never "implemented")
+- [ ] State the tee-up commitment: closeout will tee up 1–3 items for next session, each with a drafted done-criterion
 - [ ] Flag any gotchas, blockers, or changes
 
 ## Ready
 
-- [ ] Ask user what they want to focus on
+- [ ] Confirm the contract with the user (they may swap items; cap stays at 3)
+- [ ] More than 3 items handed over → first 3 are the contract, rest is the queue
+- [ ] Mid-session discoveries → backlog, never scope
 - [ ] Offer to show WIP diffs if applicable
 - [ ] Begin work
