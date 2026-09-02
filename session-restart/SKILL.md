@@ -101,6 +101,23 @@ git log --oneline --all --grep="closeout" | head -3
 
 If a closeout commit exists, it contains: what was completed, what's in progress, what docs were updated, the tee-up (next-session items with drafted done-criteria), and discovered issues. This is gold — use it as the primary briefing source. The tee-up items in particular are the **draft of this session's contract**: carry them into the Phase 4 briefing with their done-criteria intact, don't re-derive them from scratch.
 
+#### Read the Artifact Chain
+
+Claude Code does not auto-read intent, spec, or plan files — restart is where they enter the session. This is the front of Anthropic's AI-Native SDLC artifact chain (`intent.md` → `spec.md` → `plan.md` → diff; claude.com blog, 2026-08-21) at solo scale: `session-closeout` writes intent files for work that outlives a session, and this step reads them back so the contract is sourced from disk, not re-derived from a commit message.
+
+```bash
+# Open intent files — what is wanted, why, under which constraints (Tier 1/2 projects with intent/)
+ls intent/*.md 2>/dev/null | grep -v 0000-template | xargs grep -l '^Status: \(Open\|In progress\)' 2>/dev/null
+
+# Spec, if the project keeps one (optional in this house; ADRs carry most design decisions)
+ls SPEC.md docs/SPEC.md 2>/dev/null
+
+# Committed plans not yet Done — a plan whose work merged but was never closed is stale
+ls docs/plans/*.md 2>/dev/null | xargs grep -L '^Status: Done' 2>/dev/null
+```
+
+Read each open intent's Problem and Proposed outcome (a paragraph each — don't cat the whole folder into context). Flag staleness: an intent `In progress` with no commit mentioning it since the last closeout, or a plan still open whose branch merged, goes in the briefing's Heads up. Note that auto-memory loads only the first 200 lines of `MEMORY.md` — a project with many memories may have the relevant one below the fold; the intent file is the durable copy.
+
 #### Sync Fleet Build Queue (Fleet projects only)
 
 If the project uses Fleet (`.fleet/BUILD_QUEUE.md` exists), the queue may have drifted from reality if PRs merged between sessions — the dispatcher and validator update rows to `in_review` / `validated` / `flagged`, but the final `merged` flip is operator-owned and easily missed. Reconcile before the Phase 4 briefing so the "ready vs in-flight vs merged" counts you report are accurate.
@@ -255,8 +272,9 @@ Present a concise briefing to the user. Its centerpiece is the **session contrac
 
 **Source the contract items in this order:**
 1. The last closeout's tee-up (primary — those items already have drafted done-criteria; carry them forward)
-2. The project's goal (CLAUDE.md, roadmap/launch-plan docs) when the tee-up is missing, stale, or thinner than three items
-3. Anything urgent the health check surfaced (red CI, eval regression) — these can displace a teed-up item, and say so when they do
+2. Open intent files in `intent/` (`Status: Open` / `In progress`) — the next slice of one of these, when the tee-up is thinner than three items or points at one
+3. The project's goal (CLAUDE.md, roadmap/launch-plan docs) when neither of the above fills the contract
+4. Anything urgent the health check surfaced (red CI, eval regression) — these can displace a teed-up item, and say so when they do
 
 Whatever the user asked for on the way in overrides all three. If no closeout tee-up exists, derive the items and say so — don't present inferred items as if they were teed up.
 
@@ -276,7 +294,8 @@ Whatever the user asked for on the way in overrides all three. If no closeout te
 - [WIP item 2 — status and what's left]
 
 **Session contract (Build — at most 3 items, from the last closeout's tee-up + project goal):**
-1. **[Item 1]** — [why this first / where it came from: teed up last session, project goal, or health-check escalation]
+1. **[Item 1]** — [why this first / where it came from: teed up last session, an open intent file, project goal, or health-check escalation]
+   - *Artifact:* [`intent/NNNN-slug.md` it advances, or "none"; `docs/plans/<slug>.md` if this is a review-class item — see Phase 5]
    - *How:* [one-line approach — the files/areas in play and the shape of the change]
    - *Done looks like:* [the command, smoke test, or artifact that proves it — "implemented" is not a done-criterion; "`pnpm test` green with the new fixture red-then-green" is]
 2. **[Item 2]** — [...]
@@ -312,6 +331,33 @@ If the project is clean (no WIP):
 - If the user wants something else entirely, that becomes the contract (restated with done-criteria) and the teed-up items stay queued
 
 **Then compose the session brief.** Current models (Opus 5, Fable 5) do their best work from one complete task specification given up front, not from instructions drip-fed across turns. Once the contract is confirmed, expand each item into a full spec before starting: the goal, the constraints, which files/areas are in play, and the done-criterion from the contract (tests passing, PR open, docs updated). One well-specified opening brief beats ten corrective follow-ups — it is the single biggest quality lever these models have. If the contract items are already fully specified, start; don't interview the user.
+
+**Commit the brief as a plan for review-class items only.** An item that earns adversarial review under the Iron Laws — engine change, money path, wide or mechanical diff — also earns a committed plan: the brief is written to `docs/plans/<slug>.md` and committed (`docs(plans): add <slug>`) *before the first edit*, so the reviewer later checks the diff against a plan that predates it. Ordinary items keep the brief in conversation; a plan file for a one-hour fix is ceremony. The test from the playbook: an engineer who never saw this conversation could implement the change from the plan alone. Create `docs/plans/` on first use.
+
+```markdown
+# <slug>
+
+Status: Open
+Date: YYYY-MM-DD
+Intent: intent/NNNN-slug.md (or "none")
+
+## Goal
+[User-visible outcome, one paragraph]
+
+## Files to change
+[Paths, and what changes in each]
+
+## Order of work
+[Numbered; each step independently verifiable where possible]
+
+## Risks and constraints
+[What could break, what must not change, what is out of scope]
+
+## Proof
+[The done-criterion from the contract — the command, smoke, or artifact]
+```
+
+If implementation departs from the plan mid-session, the plan is updated in the same commit as the departing code — never left disagreeing with the diff; `session-closeout` reconciles and marks it `Status: Done`.
 
 ## Handling Messy State
 
@@ -366,6 +412,7 @@ This skill is the complement of `session-closeout`. When closeout is run properl
 - Git state will be clean (all work committed or stashed)
 - CLAUDE.md will be current
 - A closeout commit will contain a full session summary with a tee-up: 1–3 next-session items, each with a drafted done-criterion
+- `intent/*.md` files with `Status: Open` for anything larger than the next session — read them in Phase 1 and source contract items from them when the tee-up is thin
 - WIP commits will have clear status/next-steps in their messages
 
 When closeout wasn't run, this skill degrades gracefully — it reads git state, infers what was happening, and presents the best briefing it can. But the quality of the restart is directly proportional to the quality of the previous closeout.
