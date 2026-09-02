@@ -357,7 +357,7 @@ Intent: intent/NNNN-slug.md (or "none")
 [The done-criterion from the contract — the command, smoke, or artifact]
 ```
 
-If implementation departs from the plan mid-session, the plan is updated in the same commit as the departing code (`session-checkpoint` carries this rule); `session-closeout` reconciles and marks it `Status: Done`.
+If implementation departs from the plan mid-session, the plan is updated in the same commit as the departing code — never left disagreeing with the diff; `session-closeout` reconciles and marks it `Status: Done`.
 
 ## Handling Messy State
 
