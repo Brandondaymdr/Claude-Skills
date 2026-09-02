@@ -132,10 +132,14 @@ project-root/
 ├── docs/
 │   ├── ARCHITECTURE.md       # How the pieces fit
 │   ├── WORKFLOW.md           # Golden-path "what a feature looks like end-to-end"
+│   ├── plans/                # Committed plan.md files for review-class items (created on demand, not at kickoff)
 │   └── decisions/            # ADRs (conditional — see below)
 │       ├── DECISIONS.md      # Index of all ADRs
 │       ├── 0000-template.md  # ADR template
 │       └── README.md         # How and when to write an ADR
+├── intent/                   # Intent files: what is wanted, why, under which constraints (Tier 1/2)
+│   ├── README.md             # How and when to write one
+│   └── 0000-template.md      # Five-section template
 ├── evals/                    # AI/agent evals (conditional — see below)
 │   ├── datasets/
 │   ├── rubrics/
@@ -150,12 +154,47 @@ project-root/
 **Conditional directories:**
 - `/evals/` — scaffold ONLY if the project has AI/agent features (from Phase 1 question 9). Skip entirely otherwise.
 - `/docs/decisions/` — scaffold for Tier 1 always, Tier 2 if the user opts in at Phase 1 question 10, Tier 3 never. Always include `DECISIONS.md` as the index file when scaffolded.
+- `/intent/` — scaffold for Tier 1 and Tier 2 (README + template only; no intent files are written at kickoff). Tier 3 never. See "The intent folder" below.
+- `/docs/plans/` — never scaffolded at kickoff. `session-restart` creates it on demand the first time a review-class item (engine, money-path, wide diff) needs a committed plan.
 - `.github/workflows/evals.yml` — scaffold only if `/evals/` is scaffolded.
 - `.husky/`, `.github/dependabot.yml`, `.github/pull_request_template.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md`, `docs/WORKFLOW.md` — always scaffold for Tier 1 and Tier 2. Tier 3 skips all of these and gets only a `STATUS.md` (see Tier 3 minimum below).
 
 Adapt the application code structure to the stack. A Next.js project uses `app/` or `pages/`. A Python project uses a package directory. A monorepo adds `packages/` or `apps/`. The structure should feel native to the ecosystem, not forced into a generic template.
 
 **Tier 3 minimum:** a single `STATUS.md` in the project root that says `"experimental — not maintained"` or `"archived YYYY-MM-DD — [reason]"`. No CLAUDE.md, no tests, no CI, no docs. That's the whole point of Tier 3.
+
+#### The intent folder
+
+`intent/` is the front of the artifact chain from Anthropic's AI-Native SDLC playbook (claude.com blog, 2026-08-21, and the matching Claude Academy course): every stage ends by writing one artifact to version control and the next stage begins by reading it. `intent.md` → (optional `SPEC.md`) → `plan.md` → diff. Scaled to a solo developer: an intent file is written for any piece of work that will outlive one session — a feature, a bug that isn't a one-session fix, a process change. It is *not* written for ordinary 1–3 item session contracts; those live in the closeout tee-up. ADRs stay as they are — the playbook has none, and they are the strongest artifact in this house.
+
+Files are numbered like ADRs (`intent/0001-dark-mode.md`), carry a `Status:` line (`Open` → `In progress` → `Done` / `Dropped`), and use exactly five sections. Claude Code does **not** auto-read them — `session-restart` reads open ones when composing the session contract, `session-closeout` writes them for tee-up items that outlive the next session, and the `/intent` command (Step 4) writes one on demand.
+
+`intent/0000-template.md`:
+
+```markdown
+# NNNN. Title in the originator's own words
+
+Status: Open
+Date: YYYY-MM-DD
+Originator: [who wants this — you, a client, a user report]
+
+## Problem
+[What is wrong or missing today, in plain language. Symptoms, not solutions.]
+
+## Proposed outcome
+[What "better" looks like, as a user-visible result — not a code finding.]
+
+## Affected users and systems
+[Who notices, and which apps / packages / tables / integrations are in play.]
+
+## Constraints
+[Must-haves, must-nots, deadlines, budget, tier, anything the spec or plan may not violate.]
+
+## Open questions
+[What has to be answered before this can be specced or planned. Empty is fine.]
+```
+
+`intent/README.md` (two paragraphs is enough): when to write one (work that outlives a session), the numbering and status conventions above, and the pointer that `session-restart` sources contract items from `Status: Open` files here.
 
 #### Step 3: Write CLAUDE.md
 
@@ -225,8 +264,12 @@ If any fail, the work isn't done.
 - Deliver what was asked, at the scope intended. Make routine judgment calls yourself; check in only when different readings would lead to materially different work. If the ask seems mistaken or a better approach exists, say so in a sentence and keep going as asked — don't quietly narrow, widen, or transform the task. Report completion only when the whole task is done.
 - Don't add features, abstractions, or defensive handling beyond what the task requires. Do the simplest thing that works well; validate at system boundaries only.
 - No extra self-review passes — run the Gate Commands once at the end and cite results.
+- Work that will outlive one session starts as an intent file in `intent/` (five sections: Problem, Proposed outcome, Affected users and systems, Constraints, Open questions). Items that earn adversarial review (engine, money-path, wide diffs) get a committed plan in `docs/plans/` before the first edit; ordinary items don't.
+- When compacting, always preserve the list of modified files, the active intent and plan paths, and the Gate Commands.
 
 ## Project-Specific Gotchas
+
+Things Claude gets wrong. When Claude makes the same mistake twice, the correction goes here — or into a hook if it must hold 100% of the time.
 
 [Things that would trip Claude up without being told]
 
@@ -236,6 +279,7 @@ If any fail, the work isn't done.
 - See `docs/ARCHITECTURE.md` for how the pieces fit
 - See `docs/WORKFLOW.md` for the golden-path feature workflow
 - See `docs/decisions/DECISIONS.md` for all ADRs
+- See `intent/` for open intent files (what is wanted and why) and `docs/plans/` for committed plans
 ```
 
 #### Step 4: Configure .claude/ Directory
@@ -276,6 +320,23 @@ For Tier 3 projects, this file lives alongside `STATUS.md` in the project root s
 - `test.md` — Run test suite with options
 - `deploy.md` — Deploy to production/staging
 - `review.md` — Code review checklist
+- `intent.md` — Capture an intent file (Tier 1/2 only). The playbook's rule is that the *template* is encoded as a skill or command, not left as a loose file, so the interview stays consistent:
+
+```markdown
+# commands/intent.md
+
+Capture a new intent file for: $ARGUMENTS
+
+1. Interview me until you can fill all five sections of `intent/0000-template.md`
+   without guessing — ask about scope, affected users and systems, constraints,
+   and what "done" looks like. Stop asking once the sections are concrete.
+2. Write `intent/NNNN-<kebab-slug>.md` using the next number in the folder,
+   `Status: Open`, today's date, and me as originator.
+3. Show me the file. Correct anything I push back on before committing.
+4. Commit as `docs(intent): add NNNN <slug>` on the current branch.
+
+Do not write a spec or a plan — this command ends at the intent file.
+```
 
 **rules/** — Path-scoped rules where appropriate:
 - `api-rules.md` — API conventions (scoped to `src/api/**`)
@@ -506,6 +567,7 @@ git commit -m "chore: initial project scaffolding
 - .claude/ configuration (settings, commands, rules, agents)
 - README.md, CONTRIBUTING.md, CHANGELOG.md
 - docs/ARCHITECTURE.md, docs/WORKFLOW.md, docs/decisions/ with ADR 0001
+- intent/ with README and five-section template (Tier 1/2)
 - Linting, typechecking, Vitest, Husky, commitlint, lint-staged
 - CI workflow with gitleaks and 10-minute PR cool-down
 - Dependabot config
