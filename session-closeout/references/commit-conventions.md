@@ -56,13 +56,23 @@ Updated:
 - docs/: [what changed]
 - .claude/: [what changed]
 
-Next session priorities:
-1. [Priority 1]
-2. [Priority 2]
-3. [Priority 3]
+Tee-up — next session should (1-3 items, each with its done-criterion):
+- [Item 1] — done when: [verifiable check] (intent/NNNN-slug.md if it starts an initiative)
+- [Item 2] — done when: [...]
+
+Intent files written (work that outlives the next session):
+- intent/NNNN-slug.md — [one line]
 
 Discovered issues:
 - [Bug/gotcha/tech debt found but not addressed]
+```
+
+## Intent File
+
+```
+docs(intent): add NNNN <slug>
+
+[One line: what is wanted and why, from the intent's Problem + Proposed outcome]
 ```
 
 ## Stash Messages

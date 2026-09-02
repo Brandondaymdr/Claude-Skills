@@ -19,6 +19,7 @@ Run through this at the end of every session. Check items as you go.
 - [ ] Commands updated if new scripts added
 - [ ] Architecture updated if structure changed
 - [ ] Stale information removed
+- [ ] Mistake-twice scan run: second-occurrence corrections → CLAUDE.md gotcha (or hook/rule if it must hold 100%)
 - [ ] Under 200 lines
 - [ ] Deletion test passed (every line earns its place)
 
@@ -28,6 +29,8 @@ Run through this at the end of every session. Check items as you go.
 - [ ] .env.example includes all required variables
 - [ ] docs/ files updated if they drifted from reality
 - [ ] TODO items updated (completed marked, new ones added)
+- [ ] `intent/*.md` statuses flipped (Done / Dropped) for work that shipped or was abandoned
+- [ ] `docs/plans/*.md` for this session's items match the merged diff (updated in the closeout commit if not)
 - [ ] API docs current (if applicable)
 
 ## .claude/ Configuration
@@ -54,6 +57,7 @@ Run through this at the end of every session. Check items as you go.
 - [ ] Blockers and discovered issues noted
 - [ ] Tee-up written: 1–3 next-session items, each with a drafted done-criterion (`[Item] — done when: [verifiable check]`) — restart presents these as the next session's contract
 - [ ] Review before tee-up: each completed item's verification cited (not "implemented")
+- [ ] Anything that outlives the next session written as `intent/NNNN-slug.md` (`Status: Open`), committed `docs(intent): ...`, and referenced from the tee-up
 - [ ] Project health assessed (tests passing, docs current, folder clean)
 
 ## Quick Closeout (Minimum Viable)

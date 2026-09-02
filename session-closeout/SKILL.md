@@ -183,7 +183,9 @@ Review the current CLAUDE.md and update it with anything learned this session. T
 
 **Keep it under 200 lines.** If you're adding content and approaching the limit, move detail into skills or rules instead.
 
-Run the deletion test: for every line in CLAUDE.md, ask "would Claude make a mistake without this?" Remove anything that fails.
+Run the deletion test: for every line in CLAUDE.md, ask "would Claude make a mistake without this?" Remove anything that fails — including anything the codebase itself already says (a command that's in `package.json`, a convention the linter enforces).
+
+**Run the mistake-twice scan.** Walk the session for anything that went wrong *twice* — the user corrected the same thing again, a gate failed for the same reason again, Claude re-made a mistake it had already fixed. Each one is a CLAUDE.md gotcha by rule ("when Claude makes a mistake twice, the correction goes into CLAUDE.md" — the playbook, the Claude Code docs, and the Claude Code team all state it identically). If the correction has to hold 100% of the time (formatting, a forbidden path, a command that must run), it is a hook or a `.claude/rules/` file, not a CLAUDE.md line — CLAUDE.md is advisory. One-off slips don't qualify; the second occurrence is the signal.
 
 ### Phase 4: Update Project Documentation
 
@@ -275,6 +277,19 @@ Categorize commits by Conventional Commits type:
 
 If the user declines, again record this as a skipped item in the closeout commit so restart surfaces it.
 
+**Reconcile intent and plan files (projects with `intent/` or `docs/plans/`):**
+
+```bash
+# Intent files whose work shipped this session — flip Status to Done
+ls intent/*.md 2>/dev/null | grep -v 0000-template | xargs grep -l '^Status: \(Open\|In progress\)' 2>/dev/null
+
+# Plans touched or referenced by this session's items
+git diff --name-only "$RANGE" -- docs/plans/ 2>/dev/null
+ls docs/plans/*.md 2>/dev/null
+```
+
+For each contract item that had a committed plan: the merged diff should match the plan. If implementation departed from it, update the plan **in the same commit as the closeout** (the playbook's rule is "update `plan.md` in the same commit" — a plan that disagrees with the code is worse than no plan) and mark it `Status: Done`. For each intent file whose outcome shipped, set `Status: Done`; if the work was abandoned, `Status: Dropped` with one line saying why. Don't write new plans here — plans are written by `session-restart` before the first edit, never retroactively.
+
 ### Phase 4.7: Fleet Template Backport Check (Fleet projects only)
 
 If this session modified Fleet's operational scripts or config (`.fleet/bin/*`, `.fleet/CONFIG.yaml`, `.fleet/SLICE_TEMPLATE.md`, or anything else under `.fleet/` that exists as a template), the same change probably needs to propagate into `.claude/skills/fleet-init/templates/` so future projects bootstrap with the fix. Otherwise the lesson stays local to the pilot and every new Fleet project re-discovers the same bug.
@@ -364,6 +379,16 @@ Create a final commit that captures the closeout updates (`chore(scope):` prefix
 
 **The tee-up is the contract for the next session.** `session-restart` presents these items verbatim as the next session's Build list, so each one must carry a drafted done-criterion — the command, smoke test, or artifact that will prove it. An item teed up without a done-criterion gates nothing; "finish the feature" is a wish, "`pnpm test` green with the new fixture red-then-green" is a contract. Tee up 1–3 items, no more — and only after each of *this* session's completed items has its verification cited (the review-before-tee-up rule).
 
+**Anything that outlives the next session becomes an intent file, not a commit-body bullet.** The tee-up holds what the *next* session will build. Work that is bigger than that — a feature that will take several sessions, a bug that needs investigation before it can be scoped, a process change, a discovered issue too large for FOLLOWUPS — is written as `intent/NNNN-<slug>.md` with `Status: Open`, using the project's `intent/0000-template.md` (five sections: Problem, Proposed outcome, Affected users and systems, Constraints, Open questions). Fill Problem and Proposed outcome from what the session actually learned; leave Open questions honest. Then reference the path from the tee-up or the discovered-issues list. This is what lets the next restart source contract items from disk instead of re-deriving them from a commit message.
+
+```bash
+# Next intent number (zero-padded), same scheme as ADRs
+NEXT=$(ls intent/ 2>/dev/null | grep -E '^[0-9]{4}-' | grep -v '^0000-' | sort | tail -1 | awk -F- '{printf "%04d", $1+1}')
+echo "${NEXT:-0001}"
+```
+
+Rules of thumb: a tee-up item that is itself the *first slice* of a multi-session initiative gets an intent file too, and the tee-up cites it. If the project is Tier 1/2 and has no `intent/` folder yet, create it (README + template from `../project-kickoff/SKILL.md`, "The intent folder") — additive, and it goes in the closeout commit. If the project is Tier 3, or the user declines, the item goes to FOLLOWUPS/backlog as before. Commit intent files as `docs(intent): add NNNN <slug>` ahead of the closeout commit so they're reviewable on their own.
+
 ```bash
 git add -A
 git commit -m "chore(closeout): session closeout — update docs and project state
@@ -374,9 +399,12 @@ Summary of this session:
 - [What's blocked or needs attention]
 
 Tee-up — next session should (1-3 items, each with its done-criterion):
-- [Item 1] — done when: [the command, smoke, or artifact that proves it]
+- [Item 1] — done when: [the command, smoke, or artifact that proves it] (intent/NNNN-slug.md if it starts an initiative)
 - [Item 2] — done when: [...]
-- [Item 3] — done when: [...]"
+- [Item 3] — done when: [...]
+
+Intent files written (work that outlives the next session):
+- intent/NNNN-slug.md — [one line]"
 ```
 
 **Then push — a closeout that only exists locally defeats the handoff.** Another machine or teammate pulling the repo sees none of it, and the session summary is stranded on this machine (in a multi-machine setup this is exactly how work goes missing).
@@ -427,6 +455,7 @@ fi
 3. **Updated documentation:** [which docs were updated]
 4. **Discovered issues:** [bugs found, gotchas, tech debt]
 5. **Tee-up for next session:** [1–3 items, each as `[Item] — done when: [verifiable criterion]`, mirroring the closeout commit — session-restart will present these as the next session's contract]
+   - **Intent files written:** [paths, or "none"] — everything that outlives the next session lives here, not in the tee-up
 6. **Operational metrics:**
    - **Eval pass rate:** `$LATEST_PASSED/$LATEST_TOTAL` (delta vs previous: `$LATEST_SCORE - $PREVIOUS_SCORE`) — flag prominently if regression.
    - **CI status:** `$CI_STATUS` on branch `<branch>`. If red or pending, tell the user: "Don't merge until green."
@@ -457,6 +486,7 @@ This skill is designed to create a clean handoff for the `session-restart` skill
 - Up-to-date CLAUDE.md reflecting current project state
 - WIP commits with clear status/next-steps messages
 - A recent closeout commit with session summary and a tee-up of 1–3 items, each with a drafted done-criterion — restart opens the next session with these as its contract
+- `intent/*.md` files with `Status: Open` for anything larger than the next session — restart reads these from disk when the tee-up is thin or stale
 
 When closeout is done well, restart takes seconds instead of minutes.
 
