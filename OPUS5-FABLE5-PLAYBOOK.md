@@ -69,6 +69,21 @@ are occasional.
   only with explicit opt-in. No verifier agents on top of auditors.
 - Expect full coverage with severity + confidence tags; you prioritize.
 
+## The artifact chain (added 2026-09-02, ADR 0002)
+
+Anthropic's AI-Native SDLC playbook (2026-08-21) adds persisted artifacts to the
+loop: `intent.md` → `plan.md` → diff. Scaled to solo work:
+
+- **Restart** reads `intent/` (Status Open) and `docs/plans/` before composing
+  the contract, and commits `docs/plans/<slug>.md` *before the first edit* —
+  but only for items that already earn adversarial review (engine, money path,
+  wide diff). Ordinary items keep the brief in conversation.
+- **Closeout** writes `intent/NNNN-slug.md` for anything that outlives the next
+  session, flips intent/plan statuses, and runs the mistake-twice scan.
+- **Kickoff** scaffolds `intent/` (Tier 1/2) and the `/intent` command.
+
+Nothing about verification, review, or the 1–3 item contract changed.
+
 ## Choosing Opus 5 vs Fable 5
 
 - **Opus 5** — the daily driver for shorestack/CB feature work, reviews,
