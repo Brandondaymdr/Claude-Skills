@@ -35,6 +35,7 @@ Quick-reference checklist for project initialization. Use this as a final pass t
 - [ ] `dev.md` — start development environment
 - [ ] `test.md` — run tests with optional filter
 - [ ] `review.md` — code review checklist
+- [ ] `intent.md` — capture an intent file (Tier 1/2)
 
 ### Rules (if applicable)
 - [ ] Path-scoped rules for distinct code areas
@@ -67,6 +68,8 @@ Quick-reference checklist for project initialization. Use this as a final pass t
   - [ ] Architecture overview
   - [ ] Contributing guidelines (if team/open source)
 - [ ] `docs/` directory for extended documentation (if needed)
+- [ ] `intent/` with `README.md` + `0000-template.md` (Tier 1/2; no intent files written at kickoff)
+- [ ] CLAUDE.md Working Style names the intent/plan convention and the compaction-preserve line
 
 ## Project Structure
 

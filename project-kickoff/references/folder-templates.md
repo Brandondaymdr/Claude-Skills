@@ -27,6 +27,7 @@ project-root/
 ├── .gitignore                  # Stack-appropriate ignores
 ├── CLAUDE.md                   # AI assistant instructions
 ├── README.md                   # Human documentation
+├── intent/                     # Intent files (Tier 1/2): README + 0000-template.md
 └── .env.example                # Environment variable template
 ```
 
