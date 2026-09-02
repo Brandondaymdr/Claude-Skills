@@ -27,6 +27,8 @@ Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 - `session-checkpoint` — quick mid-session WIP save
 - `session-closeout` — structured end-of-session SOP (docs, commits, knowledge capture)
 
+The three carry the intent → plan artifact chain (`DEFAULTS-ADR-0002.md`): restart reads `intent/` + `docs/plans/`, closeout writes intent files for work that outlives the next session, kickoff scaffolds the folder.
+
 **Project operations:**
 - `project-kickoff` — scaffold new projects with production-grade defaults
 - `folder-forensic-audit` — diagnostic audit (Phases 1–5) + prescriptive Conformance Mode (Phase 6)
@@ -39,6 +41,8 @@ Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 - `OPUS5-FABLE5-PLAYBOOK.md` — how to run the session/project skills with the Claude 5-family models; written alongside the 2026-07-29 tuning pass (scope discipline, no ritual re-verification, delegation caps).
 - `rules/discipline.md` — canonical copy of the global discipline layer (see the exception note at the top of this file).
 - `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot, cool-down). Becomes ADR 0001 of the future `project-template` repo.
+- `DEFAULTS-ADR-0002.md` — intent/plan artifacts (Anthropic's AI-Native SDLC artifact chain at solo scale): `intent/` for work that outlives a session, `docs/plans/` only for review-class items; ADRs unchanged. Implemented in kickoff/closeout/restart 2026-09-02.
+- `intent/` — this repo's own open initiatives, per ADR 0002 (`session-restart` reads `Status: Open` files here).
 - `WORKFLOW-GOLDEN-PATH.md` — the one-page feature workflow; copied to `docs/WORKFLOW.md` in scaffolded projects.
 - `SESSION-SUMMARY*.md` — closeout artifacts from major sessions.
 
