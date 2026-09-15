@@ -22,6 +22,7 @@ Root docs: `CLAUDE.md` (instructions for Claude working in this repo), `DEFAULTS
 | `project-kickoff` | Scaffold a new project with production-grade structure, CLAUDE.md, verification stack, and workflow rules from day one. |
 | `folder-forensic-audit` | Deep project health audit (structure, docs, git hygiene, testing, evals) with a 100-point scorecard, plus opt-in Conformance Mode that applies template defaults via a reviewed PR. |
 | `fleet-init` | Bootstrap a Fleet autonomous-build pipeline: queue-driven builder/validator agents on an always-on host, rendered from `templates/` via the `PARAMETERS.md` substitution contract. |
+| `apple-intelligence` | Verified facts and reachability gates for Siri / Spotlight / Apple Intelligence on iOS 27 + macOS 27 (App Intents, IndexedEntity, Foundation Models): which repo can reach what, the release-note hard constraints, the Xcode 27 migration list. Pass one; code patterns land after they compile. |
 
 The rest are domain skills for specific products and clients (Shopify/Cheersworthy, beehiiv/WhiskeyTribe, Circle.so, Toast POS, Obsidian vault management, video editing, and more).
 
