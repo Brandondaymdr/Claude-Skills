@@ -14,7 +14,7 @@ Originator: Brandon (Developer Transition Plan Phase 2, 2026-04; re-surfaced by 
 Brandon only. `project-kickoff` (Step 0 becomes real), `folder-forensic-audit` Conformance Mode (its fix matrix is the template's content list), `DEFAULTS-ADR-0001.md` + `WORKFLOW-GOLDEN-PATH.md` (become the template's ADR 0001 and `docs/WORKFLOW.md`), and every future repo.
 
 ## Constraints
-Everything in `DEFAULTS-ADR-0001.md` is already decided — the template implements, it doesn't re-decide. Three variants ship as subdirectories (kickoff Step 0 assumes this). Must include `intent/` (ADR 0002), commitlint `type-enum` with `wip`, the `permissions:` block in CI, and the `pr-age-check` job. Build on whichever machine; no signing or notary involved.
+Everything in `DEFAULTS-ADR-0001.md` is already decided — the template implements, it doesn't re-decide. Three variants ship as subdirectories (kickoff Step 0 assumes this). Must include `intent/` (ADR 0002), commitlint `type-enum` with `wip`, and the `permissions:` block in CI (no `pr-age-check` job — `DEFAULTS-ADR-0001 §8` superseded). Build on whichever machine; no signing or notary involved.
 
 ## Open questions
 - One repo with three variant subdirs (as Step 0 assumes) or three template repos? Step 0's clone-then-prune flow is awkward; a `gh repo create --template` per variant may be cleaner.

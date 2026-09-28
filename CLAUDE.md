@@ -17,8 +17,8 @@ Follow `WORKFLOW-GOLDEN-PATH.md`. Non-negotiables for this repo:
 
 - Branch first (`feat/`, `fix/`, `chore/`, `docs/` prefixes) — never commit to `main`
 - Conventional Commits (`feat(skills):`, `chore(skill):`, `docs(...)`)
-- Every change lands via PR; 10-minute cool-down before merge (squash-merge is the house style)
-- No CI in this repo — the cool-down re-read is the review
+- Every change lands via PR; squash-merge is the house style (no timed cool-down — see `DEFAULTS-ADR-0001 §8`)
+- No CI in this repo — re-read the diff before merging; that is the review
 
 ## Skill families
 
@@ -40,7 +40,7 @@ The three carry the intent → plan artifact chain (`DEFAULTS-ADR-0002.md`): res
 
 - `OPUS5-FABLE5-PLAYBOOK.md` — how to run the session/project skills with the Claude 5-family models; written alongside the 2026-07-29 tuning pass (scope discipline, no ritual re-verification, delegation caps).
 - `rules/discipline.md` — canonical copy of the global discipline layer (see the exception note at the top of this file).
-- `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot, cool-down). Becomes ADR 0001 of the future `project-template` repo.
+- `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot). Becomes ADR 0001 of the future `project-template` repo.
 - `DEFAULTS-ADR-0002.md` — intent/plan artifacts (Anthropic's AI-Native SDLC artifact chain at solo scale): `intent/` for work that outlives a session, `docs/plans/` only for review-class items; ADRs unchanged. Implemented in kickoff/closeout/restart 2026-09-02.
 - `intent/` — this repo's own open initiatives, per ADR 0002 (`session-restart` reads `Status: Open` files here).
 - `WORKFLOW-GOLDEN-PATH.md` — the one-page feature workflow; copied to `docs/WORKFLOW.md` in scaffolded projects.

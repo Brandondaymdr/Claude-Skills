@@ -245,7 +245,7 @@ Commands to install, run, test, and build:
 4. **Every bug fix gets a regression test** before the fix ships.
 5. **Every agent/prompt change commits the eval run log** to `/evals/history/`.
 6. **`CHANGELOG.md` `## [Unreleased]` section is updated** for every user-facing change.
-7. **Self-merge requires a 10-minute cool-down** after PR opened. Re-read the diff fresh before merging. CI enforces this via the `pr-age-check` job.
+7. **Merge once CI is green.** Re-read the diff top to bottom before merging. No timed wait — Claude opens and merges PRs, so a cool-down adds latency without adding review (`DEFAULTS-ADR-0001 §8`, superseded).
 
 ## Gate Commands
 
@@ -474,30 +474,9 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  pr-age-check:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Enforce 10-minute cool-down on self-merge
-        run: |
-          OPENED_AT=$(gh pr view ${{ github.event.pull_request.number }} --json createdAt -q .createdAt --repo "$GITHUB_REPOSITORY")
-          OPENED_EPOCH=$(date -d "$OPENED_AT" +%s)
-          NOW_EPOCH=$(date +%s)
-          AGE=$((NOW_EPOCH - OPENED_EPOCH))
-          if [ $AGE -lt 600 ]; then
-            echo "PR is only $AGE seconds old. Minimum 600 seconds (10 min) required before self-merge."
-            exit 1
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-The top-level `permissions:` block is **required** — the default `GITHUB_TOKEN` is read-only on contents but does NOT grant `pull_requests:read`. Without this block, both `gitleaks-action` (queries `/pulls/{n}/commits`) and `pr-age-check` (uses `gh pr view`) will fail with 403. The `--repo "$GITHUB_REPOSITORY"` on the `gh pr view` line is similarly required so the gh CLI knows which repo it's querying without relying on a working directory it may not have.
-
-Skip the `pr-age-check` job for `dependabot[bot]` and `docs:` PRs via commit-message match if desired.
-
-**Expected behavior, not flakiness:** `pr-age-check` FAILS on every PR's initial run by construction — the job fires the moment the PR opens, when the PR is always under 10 minutes old. That red X is the cool-down working. After 10 minutes, re-run the job (GitHub UI "Re-run" or `gh run rerun <run-id>`) and it goes green, unblocking the merge. Tell the user this at kickoff so the first PR's red check doesn't get "debugged."
+The top-level `permissions:` block is **required** — the default `GITHUB_TOKEN` is read-only on contents but does NOT grant `pull_requests:read`. Without this block, `gitleaks-action` (queries `/pulls/{n}/commits`) will fail with 403.
 
 If the project has AI features, also create `.github/workflows/evals.yml` that runs on PRs touching `/evals/**`, `/src/agents/**`, or prompt files. Posts score as a PR comment. Fails if the score drops below `evals/threshold.json`.
 
@@ -517,7 +496,7 @@ Create `.github/dependabot.yml` per the defaults ADR. Groups dev-dependencies to
 - [ ] ADR written if architectural decision made
 - [ ] CHANGELOG Unreleased section updated if user-facing
 - [ ] Eval log committed if agent/prompt changed
-- [ ] CI green (including 10-min cool-down for self-merge)
+- [ ] CI green
 ```
 
 **Verify before declaring kickoff complete:** Before moving on, confirm:
@@ -569,7 +548,7 @@ git commit -m "chore: initial project scaffolding
 - docs/ARCHITECTURE.md, docs/WORKFLOW.md, docs/decisions/ with ADR 0001
 - intent/ with README and five-section template (Tier 1/2)
 - Linting, typechecking, Vitest, Husky, commitlint, lint-staged
-- CI workflow with gitleaks and 10-minute PR cool-down
+- CI workflow with gitleaks
 - Dependabot config
 - Environment template (.env.example)"
 
@@ -585,8 +564,7 @@ gh api -X PUT repos/:owner/:repo/branches/main/protection --input - <<'EOF'
   "required_status_checks": {
     "strict": true,
     "checks": [
-      { "context": "verify" },
-      { "context": "pr-age-check" }
+      { "context": "verify" }
     ]
   },
   "enforce_admins": true,

@@ -38,7 +38,7 @@ Because the symlink points at the working tree, edits (and pulls) take effect in
 
 ## Contributing changes
 
-All changes go through the workflow in `WORKFLOW-GOLDEN-PATH.md`: typed branch → Conventional Commit → PR → 10-minute cool-down re-read → squash-merge. See `CLAUDE.md` for repo-specific conventions.
+All changes go through the workflow in `WORKFLOW-GOLDEN-PATH.md`: typed branch → Conventional Commit → PR → re-read the diff → squash-merge. See `CLAUDE.md` for repo-specific conventions.
 
 ## Writing a new skill
 

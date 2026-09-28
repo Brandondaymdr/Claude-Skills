@@ -88,7 +88,7 @@ These fixes modify state that already exists. **Require explicit user confirmati
 Examples (see fix matrix for the full list):
 - `CLAUDE.md` — backfill the 7 non-negotiable workflow rules section
 - `CLAUDE.md` — add the verification commands section
-- `.github/workflows/ci.yml` — add `pr-age-check` job and gitleaks step if missing
+- `.github/workflows/ci.yml` — add gitleaks step if missing
 - `package.json` — add `lint`, `typecheck`, `test`, `build` scripts if missing
 - `.gitignore` — add `.env`, `node_modules`, `.DS_Store`, build outputs if missing
 - Branch protection on `main` via `gh api` (no file commit, but document in PR description)
@@ -99,7 +99,7 @@ Each Category B fix lands as its own commit:
 chore(conformance): update <file> — <what changed>
 ```
 
-**CLAUDE.md rules backfill is diff-aware.** Before inserting the 7-rules section, scan the existing `CLAUDE.md` for each rule already documented elsewhere — projects often cover some of them under headings like "Tooling", "Hard conventions", or "Git workflow". For each of the 7 rules, search for its signature concepts (e.g. rule "Conventional Commits" → `commitlint`, `conventional commit`; rule "never commit to main" → `branch protection`, `feature branch`, `direct to main`; rule "PR cool-down" → `cool-down`, `10 minute`). Then:
+**CLAUDE.md rules backfill is diff-aware.** Before inserting the 7-rules section, scan the existing `CLAUDE.md` for each rule already documented elsewhere — projects often cover some of them under headings like "Tooling", "Hard conventions", or "Git workflow". For each of the 7 rules, search for its signature concepts (e.g. rule "Conventional Commits" → `commitlint`, `conventional commit`; rule "never commit to main" → `branch protection`, `feature branch`, `direct to main`; rule "merge once CI is green" → `CI green`, `before merging`). Then:
 
 - **No rules found:** insert the canonical section verbatim (the common case).
 - **Some rules found:** insert the section, but for each already-covered rule replace its body with a pointer line — `N. **<rule name>** — see "<existing section heading>" below.` — keeping full text only for rules the file doesn't cover. The section must still enumerate all 7 so the contract is visible in one place; the pointers avoid stating one rule two ways that can drift apart.
@@ -161,7 +161,7 @@ The prerequisite check happens **after** variant recognition but **before** the 
 # 4. Push the branch
 git push -u origin HEAD
 
-# 5. Open a PR — do NOT auto-merge, respects the 10-min cool-down
+# 5. Open a PR — do NOT auto-merge
 gh pr create --title "chore(conformance): align with project-template defaults" \
   --body "$(cat <<'EOF'
 [PR description — see template below]
@@ -199,7 +199,6 @@ Brings the project into alignment with the canonical defaults in
 - `pnpm install` (regenerates lockfile if `package.json` was modified)
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all green
 - CI passes
-- 10-minute cool-down per `DEFAULTS-ADR-0001 §8`
 ```
 
 ## Exceptions mechanism
@@ -224,5 +223,5 @@ Format: each `<fix-id>` must match an ID from `references/conformance-fix-matrix
 - **Doesn't run tests, lint, or build.** That's the developer's job before merging the PR. Conformance lands the scaffolding; verification is the human's call.
 - **Doesn't regenerate lockfiles.** If `package.json` scripts change, the user runs `pnpm install` and commits the lockfile separately.
 - **Doesn't touch source code.** Pure scaffolding and config only.
-- **Doesn't auto-merge.** Always produces a PR. The 10-minute cool-down applies (per `DEFAULTS-ADR-0001 §8`).
+- **Doesn't auto-merge.** Always produces a PR for the user to approve.
 - **Doesn't bypass commitlint or pre-commit hooks** that already exist. If the project has commitlint installed, the conformance commits must conform — and they do (`chore(conformance):` is a valid Conventional Commits prefix).

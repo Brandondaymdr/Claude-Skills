@@ -99,17 +99,11 @@ Reasoning: consistency — if you know conventional commits, you know branch pre
 
 Each project's ADR 0002 records which scheme it uses.
 
-### 8. Self-review discipline: **10-minute cool-down + re-read**
+### 8. Self-review discipline: ~~10-minute cool-down + re-read~~ — **SUPERSEDED 2026-09-28**
 
-Reasoning: the review muscle needs training. Solo developers who self-merge instantly never develop it. A mechanical delay forces fresh eyes.
+The timed cool-down and the `pr-age-check` CI job are removed. Claude opens and merges the PRs, not Brandon, so the 10-minute wait bought no fresh-eyes review — it only added latency to every PR. What remains: merge once CI is green, and re-read the diff top to bottom before merging.
 
-**Mechanics:**
-- After opening a PR, wait 10 minutes before self-merging.
-- During the wait: context-switch (walk, water, another task — not the same PR).
-- Re-read the diff from top to bottom before merging.
-- CI job `pr-age-check` enforces it: compares PR opened-at to merge attempt time, fails if <10 minutes.
-
-**Exception:** `chore(deps):` PRs from Dependabot and `docs:` PRs can merge immediately if CI is green. Those are low-risk.
+Existing repos scaffolded before this change may still carry a `pr-age-check` job (and list it as a required status check in branch protection); remove both there when convenient.
 
 ### 9. Pre-commit hooks: **Husky + lint-staged + commitlint** (same as Decision 4)
 
@@ -117,7 +111,7 @@ Already covered. Listed separately because the plan called it out as an extra.
 
 ### 10. Dependency updates: **Dependabot** (GitHub-native)
 
-Reasoning: zero-config alternative to Renovate. PRs grouped by ecosystem. Runs weekly. CI validates the update. `chore(deps):` commits are exempted from the 10-min cool-down so you can merge them fast.
+Reasoning: zero-config alternative to Renovate. PRs grouped by ecosystem. Runs weekly. CI validates the update.
 
 **Config (`.github/dependabot.yml`):**
 ```yaml
@@ -191,13 +185,11 @@ Content covered in a separate file.
 - Every new project starts with identical, decided defaults — zero decision fatigue per project.
 - Retrofits have a clear target: "match the template."
 - `/project-kickoff` can just clone and go.
-- Self-review cool-down catches bugs that would ship otherwise.
 - gitleaks prevents the nightmare scenario (committed API keys).
 
 **Harder:**
 - Any future divergence from these defaults requires its own ADR explaining why. Good — forces deliberate reasoning.
 - Dependabot noise (weekly PRs). Mitigated by grouping + auto-merge on dev-deps once CI green.
-- The 10-min cool-down feels slow at first. That's the point.
 
 **Gave up:**
 - Per-project flexibility on tooling choices. This is actually a win for a solo developer with 25+ projects — consistency beats local optimization.
