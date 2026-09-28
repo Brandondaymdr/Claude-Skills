@@ -470,7 +470,7 @@ Trigger words: "conform", "align", "retrofit", "bring this project up to standar
 2. **Category A — auto-apply.** Additive file creation only (hooks, CI workflow, doc skeletons, templates). Existing files and recognized variants are skipped silently and noted in the run report. One commit per fix: `chore(conformance): add <file> from template`.
 3. **Category B — apply with confirmation.** Modifies existing files or remote state (CLAUDE.md backfills, CI job additions, package scripts, `.gitignore` entries, branch protection). Diff preview and explicit user confirmation per fix; one commit each: `chore(conformance): update <file> — <what changed>`.
 4. **Category C — never auto-apply.** Restructures, renames, deletions, source-code changes, package-manager migration, dependency upgrades, prerequisite installs. Surfaced in the run report and PR description only.
-5. **Finish.** Push the branch and open a PR using the template in `references/conformance-mode.md`. Never auto-merge — the 10-minute cool-down applies.
+5. **Finish.** Push the branch and open a PR using the template in `references/conformance-mode.md`. Never auto-merge — Category B changes need the user's go-ahead first.
 
 ### Hard rules regardless of category
 

@@ -465,8 +465,6 @@ fi
 7. **Handoff state:** branch pushed? PR open/updated (link)? — or "no remote" if the repo has none
 8. **Project health:** [quick assessment — is the folder clean, are docs current, are tests passing? Cite the session's most recent gate run; re-run only if commits landed after it]
 
-**If the user is about to merge a PR from this branch:** remind them of the 10-minute cool-down (per `DEFAULTS-ADR-0001`). The CI `pr-age-check` job will block merge for PRs under 10 minutes old, but the habit is to close Claude, get water, come back, and re-read the diff. Don't merge in the same minute you push.
-
 **If the user has uncommitted work they chose not to commit or stash:** do not let closeout finish silently. Either they confirm "discard" or they commit/stash. The closeout skill does not end a session with a dirty working tree.
 
 ## Cowork Mode Adaptations

@@ -70,7 +70,6 @@ These fixes **modify existing files**. Show a diff preview and require user conf
 | `claude-md-verify` | `CLAUDE.md` | The verification commands section, if missing |
 | `claude-md-skills-refs` | `CLAUDE.md` | The "Skills & References" footer, if missing |
 | `husky-hook-append` | `.husky/<hook>` | Append missing entries to existing hook file with comment marker |
-| `ci-pr-age-check` | `.github/workflows/ci.yml` | `pr-age-check` job, if missing |
 | `ci-gitleaks` | `.github/workflows/ci.yml` | gitleaks scan step in the verify job, if missing |
 | `package-scripts` | `package.json` | `lint`, `typecheck`, `test`, `build` scripts, if missing |
 | `package-manager-field` | `package.json` | `"packageManager": "pnpm@<version>"` field per DEFAULTS-ADR-0001 §1 |
@@ -200,7 +199,7 @@ This project follows the golden-path workflow documented in
 
 ```
 pull main → branch → code → commit (conventional) → push → PR → CI green
-       → 10-min cool-down → self-review → merge → update CHANGELOG/ADR → closeout
+       → self-review → merge → update CHANGELOG/ADR → closeout
 ```
 
 ## Commit format
@@ -224,10 +223,8 @@ Branch prefix matches the commit type: `feat/...`, `fix/...`, `chore/...`,
 
 ## Pull requests
 
-- Self-merge is allowed but requires a 10-minute cool-down after opening
-  (CI enforces via `pr-age-check`).
-- Re-read the diff top-to-bottom before merging — fresh eyes catch ~1 in 5.
-- Exceptions: `chore(deps):` and `docs:` PRs can merge immediately if CI is green.
+- Self-merge once CI is green — no timed cool-down.
+- Re-read the diff top-to-bottom before merging.
 
 ## Architectural decisions
 

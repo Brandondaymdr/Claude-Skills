@@ -8,7 +8,7 @@
 
 ```
 pull main → branch → code → commit (conventional) → push → PR → CI green
-         → 10-min cool-down → self-review → merge → update CHANGELOG/ADR → closeout
+         → self-review → merge → update CHANGELOG/ADR → closeout
 ```
 
 That's the whole thing. Every feature. Every fix. Every tweak.
@@ -143,13 +143,11 @@ EOF
 )"
 ```
 
-### 9. Wait 10 minutes. Then re-read the diff.
+### 9. Re-read the diff.
 
-The 10-minute cool-down is mandatory (per `DEFAULTS-ADR-0001`). It's mechanically enforced — the `pr-age-check` CI job will refuse to let you merge a PR under 10 minutes old.
+Once CI is green, re-read the diff top to bottom on GitHub. There is no timed cool-down — Claude opens and merges PRs, so a wait adds latency without adding review (`DEFAULTS-ADR-0001 §8`, superseded).
 
-During the wait: walk, water, do something unrelated. **Not the same PR.** The point is fresh eyes.
-
-When you come back, re-read the diff top to bottom on GitHub. Not the code — the diff. Look for:
+Read the diff, not the code. Look for:
 
 - Dead code or debug statements you forgot to remove
 - TODOs that should be resolved or tracked as issues
@@ -178,9 +176,7 @@ Back on main, run `/closeout` to:
 
 ### Exceptions (narrow, well-defined)
 
-- **Dependabot PRs (`chore(deps):` ...)** can merge without the 10-min cool-down if CI is green.
-- **Docs-only PRs (`docs:` ...)** can merge without the cool-down.
-- **Hotfixes on live-breaking production issues** can bypass the cool-down with an explicit note in the PR. Write a post-incident ADR afterward explaining what happened.
+- **Hotfixes on live-breaking production issues** can skip the ADR/CHANGELOG step at merge time with an explicit note in the PR. Write a post-incident ADR afterward explaining what happened.
 
 Everything else: no exceptions. The discipline is the feature.
 
@@ -188,7 +184,7 @@ Everything else: no exceptions. The discipline is the feature.
 
 ## What this feels like
 
-The first week: slow. You'll chafe against the 10-min cool-down and the ADR overhead.
+The first week: slow. You'll chafe against the ADR overhead.
 
 The second week: faster. Your muscle memory catches up and most of the friction disappears.
 
