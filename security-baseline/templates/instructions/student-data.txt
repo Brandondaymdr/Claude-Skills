@@ -1,0 +1,4 @@
+Student and immigration data (SAI):
+- Every route, server action or storage access for student records, passports, visas or applications must check the caller owns the record or holds a staff role; test the two-student case mentally for each.
+- Uploaded documents must live in private storage and be served only via short-lived signed URLs; public buckets or long-lived URLs are findings.
+- Passport numbers, visa details, dates of birth and addresses must not be logged, sent to analytics, or included in error reports.

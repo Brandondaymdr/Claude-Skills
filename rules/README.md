@@ -7,7 +7,12 @@ canonical copy lives here and each machine installs it as a symlink:
 ```bash
 mkdir -p ~/.claude/rules
 ln -sf ~/Projects/claude-skills/rules/discipline.md ~/.claude/rules/discipline.md
+ln -sf ~/Projects/claude-skills/rules/security.md ~/.claude/rules/security.md
 ```
+
+`security.md` is the security coding layer that pairs with the `security-baseline`
+skill. The SAI account (`~/.claude-sai`) links it too — see
+`security-baseline/references/sai-account.md`.
 
 After that, `git pull` in this repo updates the live rule on that machine, same
 as the skills symlink. Edit it via the normal worktree → PR flow, never in

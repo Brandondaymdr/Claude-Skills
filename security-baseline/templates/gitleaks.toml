@@ -1,0 +1,14 @@
+# Installed by security-baseline. Extends gitleaks' built-in rules.
+# Per-repo tuning goes here (or fingerprints in .gitleaksignore) — not in the
+# Claude-Skills template, unless the noise is stack-wide.
+title = "security-baseline"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixtures and generated files"
+paths = [
+  '''(^|/)(__fixtures__|fixtures|testdata)/''',
+  '''(^|/)gitleaks-report.*\.json$''',
+]

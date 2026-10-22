@@ -1,0 +1,6 @@
+Next.js:
+- Authorization enforced only in middleware is a finding; check it again in the route handler, server action or data layer (CVE-2025-29927 class).
+- Server actions are public POST endpoints: each must authenticate and authorize independently.
+- Secrets read in files marked "use client", or exported through NEXT_PUBLIC_ env vars, are findings.
+- dangerouslySetInnerHTML with any user- or CMS-controlled content is a finding unless sanitized.
+- Redirects built from query parameters must be restricted to same-origin paths.
