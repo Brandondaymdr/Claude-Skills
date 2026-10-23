@@ -1,0 +1,8 @@
+Project context: a small production codebase maintained by one developer, largely written with AI coding agents. Prioritize the bug classes AI agents most often introduce:
+- Missing authorization: any handler, API route, server action or RPC that loads, updates or deletes a record by ID must verify the caller owns or may access that record (IDOR). Authentication alone is not authorization.
+- Secrets in client code: API keys, service tokens or admin credentials referenced from browser, mobile or desktop bundles, or from env vars with public prefixes (NEXT_PUBLIC_, VITE_, EXPO_PUBLIC_, PUBLIC_).
+- Webhook and callback handlers that act on a request before verifying its signature, or that compare signatures with non-constant-time equality.
+- Trusting client-supplied identity or price fields (user_id, role, tenant_id, amount, quantity) instead of deriving them server-side.
+- Logging or returning sensitive data: tokens, passwords, government IDs, bank details, full request bodies.
+- Prompt injection: untrusted text (emails, transaction memos, uploaded documents, web content) flowing into an LLM that can call tools or write data without a human approval step.
+Report only issues with a concrete exploit path in this code. Do not report missing rate limiting, generic hardening advice, or style.

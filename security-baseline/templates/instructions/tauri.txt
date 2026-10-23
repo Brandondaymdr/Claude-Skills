@@ -1,0 +1,6 @@
+Tauri desktop app:
+- Capabilities/permissions in src-tauri/capabilities should grant only the commands and plugins the app uses; shell, fs, http or process permissions without tight scopes are findings.
+- Every #[tauri::command] receiving a path, URL or SQL fragment from the webview must validate it; the webview is untrusted.
+- tauri.conf.json must set a CSP; 'unsafe-eval' or remote script sources are findings.
+- Updater signing private keys, license-server secrets or shared database admin tokens must not appear in the repo or the bundle.
+- Per-user remote database tokens (e.g. Turso) must be scoped to that user's database.

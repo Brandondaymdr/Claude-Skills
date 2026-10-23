@@ -1,0 +1,8 @@
+Supabase / Postgres:
+- Every table in an API-exposed schema needs RLS enabled AND a policy; a CREATE TABLE in a migration without ENABLE ROW LEVEL SECURITY is a finding.
+- Policies using USING (true), or checking a client-writable column instead of auth.uid(), are findings.
+- Materialized views cannot have RLS; one in an exposed schema leaks every row.
+- Views without security_invoker = true run with the owner's rights and bypass RLS.
+- SECURITY DEFINER functions must SET search_path and must not be executable by anon unless intended.
+- The service_role key must never reach client code or a desktop/mobile bundle.
+- Any text-to-SQL or dynamic SQL path must run under a restricted role with RLS applied, never service_role.

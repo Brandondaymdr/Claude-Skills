@@ -1,0 +1,94 @@
+# Installed by security-baseline (layer 2). Source of truth:
+# Brandondaymdr/Claude-Skills security-baseline/templates/security.yml
+#
+# Jobs (required checks on Tier 1 main): secrets, deps, ai-review
+# Needs repo secret CLAUDE_API_KEY (the owning business's Anthropic key).
+# Third-party actions are pinned to full commit SHAs; bump via the skill.
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 13 * * 1" # Mondays: catch new CVEs in unchanged dependencies
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: secrets
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks (checksum-verified)
+        run: |
+          curl -sSL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar xzf gitleaks.tgz gitleaks
+      - name: Scan
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PRs: only the commits this PR adds
+            ./gitleaks git --redact --no-banner -v \
+              --log-opts="origin/${{ github.base_ref }}..HEAD"
+          else
+            # main and weekly: full history (rotated historic keys go in .gitleaksignore)
+            ./gitleaks git --redact --no-banner -v
+          fi
+
+  deps:
+    name: deps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Trivy dependency scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.1
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          # accepted risks go in .trivyignore, one CVE per line with a comment why
+
+  ai-review:
+    name: ai-review
+    # PRs only; Dependabot diffs are lockfiles (Trivy covers them). Skipped = passes.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+      - id: review
+        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda # main @ 2026-10-22
+        with:
+          comment-pr: true
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-model: claude-sonnet-5-5
+          custom-security-scan-instructions: .github/security-instructions.txt
+          exclude-directories: node_modules,dist,build,.next,vendor
+      - name: Fail on findings
+        if: steps.review.outputs.findings-count != '' && steps.review.outputs.findings-count != '0'
+        run: |
+          echo "Claude security review reported ${{ steps.review.outputs.findings-count }} finding(s); see PR comments."
+          exit 1

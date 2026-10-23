@@ -32,6 +32,7 @@ The three carry the intent → plan artifact chain (`DEFAULTS-ADR-0002.md`): res
 **Project operations:**
 - `project-kickoff` — scaffold new projects with production-grade defaults
 - `folder-forensic-audit` — diagnostic audit (Phases 1–5) + prescriptive Conformance Mode (Phase 6)
+- `security-baseline` — layered security (gitleaks hook, PR security checks, Cloudflare deep audit, hardening checklists, alerting) applied identically across Days LLC, Crowded Barrel and SAI repos; pairs with `rules/security.md`
 - `fleet-init` — bootstrap a Fleet autonomous-build pipeline (`templates/` are the canonical Fleet scripts; `PARAMETERS.md` defines the `{{PLACEHOLDER}}` substitution contract)
 
 **Domain skills** (client/product work): `apple-intelligence` (Siri / Spotlight / App Intents gates for the native + Capacitor apps), `beehiiv*` (WhiskeyTribe newsletter), `cheersworthy-*` (Shopify spirits store), `circle-so-*` (Carla Gentile Yoga community), `obsidian-*` (vault management), `sai-process-sketch` (SAI Student Portal stakeholder sketches), `shopify-*`, `toast-*` (POS), plus `adobe-premiere`, `frontend-design`, `instagram`, `internal-comms`, `n8n`, `photoshop-thumbnails`, `slack-comms-builder`, `video`, `whiskeysomm-brand`, `youtube-channel`.
@@ -40,6 +41,7 @@ The three carry the intent → plan artifact chain (`DEFAULTS-ADR-0002.md`): res
 
 - `OPUS5-FABLE5-PLAYBOOK.md` — how to run the session/project skills with the Claude 5-family models; written alongside the 2026-07-29 tuning pass (scope discipline, no ritual re-verification, delegation caps).
 - `rules/discipline.md` — canonical copy of the global discipline layer (see the exception note at the top of this file).
+- `rules/security.md` — global security coding rules, installed the same way as `discipline.md`.
 - `DEFAULTS-ADR-0001.md` — foundational tooling/workflow defaults (pnpm, Vitest, Husky, commitlint, gitleaks, Dependabot). Becomes ADR 0001 of the future `project-template` repo.
 - `DEFAULTS-ADR-0002.md` — intent/plan artifacts (Anthropic's AI-Native SDLC artifact chain at solo scale): `intent/` for work that outlives a session, `docs/plans/` only for review-class items; ADRs unchanged. Implemented in kickoff/closeout/restart 2026-09-02.
 - `intent/` — this repo's own open initiatives, per ADR 0002 (`session-restart` reads `Status: Open` files here).

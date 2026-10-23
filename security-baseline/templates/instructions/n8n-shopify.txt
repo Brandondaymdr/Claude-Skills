@@ -1,0 +1,5 @@
+Shopify / n8n / e-commerce integrations:
+- Shopify webhooks must verify X-Shopify-Hmac-Sha256 over the raw body before parsing.
+- n8n webhook URLs used in code must carry header auth; a bare webhook URL that triggers writes is a finding.
+- Admin API tokens, Airtable tokens or n8n API keys in theme code, storefront JS or committed config are findings.
+- Prices, discounts and inventory must come from the platform API, not from client-submitted values.
