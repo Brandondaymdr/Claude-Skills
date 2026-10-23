@@ -69,3 +69,26 @@ memory — the scripts redact; keep it that way.
   `.gitleaks.toml` allowlist in that repo — not the templates — unless the noise is
   stack-wide.
 - The global coding rules Claude follows live in `../rules/security.md`.
+
+## Lessons from the first rollout (2026-10)
+
+- **Fix the deps before adding the checks.** A repo with open HIGH/CRITICAL
+  advisories turns `deps` red on the baseline PR itself. Land a dependency-fix PR
+  first, verify it on the preview, merge, then apply the baseline.
+- **npm 10 `audit fix` can crash** with `Cannot read properties of null
+  (reading 'edgesOut')` (optional peers such as puppeteer-core). Run
+  `npx -y npm@11 audit fix` instead. A Next minor bump can enable new
+  `react-hooks` lint rules; turn them off in `eslint.config.mjs` rather than
+  refactoring inside a security PR.
+- **Verify production actually moved after merging.** Vercel can skip the
+  production deploy when the merge commit matches a preview it already built.
+  Check the live bundle (for PWAs, the `sw.js` cache name) and promote the
+  preview if it didn't move.
+- **Cloud sessions:** `gh pr create` (GraphQL) and ruleset/settings writes are
+  blocked by the proxy. Use `apply-to-repo.sh --no-pr`, open the PR with
+  `gh api repos/<owner>/<repo>/pulls`, and have the user run `repo-settings.sh`
+  on their Mac.
+- **Frozen or absorbed repos** (code now lives in a monorepo): ship
+  CVE-driven dependency fixes only; skip the workflow and ruleset there, since
+  the monorepo's checks cover the code.
+- Progress tracker for the rollout: `../intent/0004-security-baseline-rollout.md`.
