@@ -1,6 +1,6 @@
 # 0004. Layered security defense on every live and upcoming app
 
-Status: In progress
+Status: Open
 Date: 2026-10-23
 Originator: Brandon
 
