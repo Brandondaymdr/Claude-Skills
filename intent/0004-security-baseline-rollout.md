@@ -41,16 +41,26 @@ Crowded Barrel & SAI" — https://claude.ai/artifact/LDoBFzV7HL6689Bu2HQehD
 | Crowded Barrel re-check (2026-10-24) | barrel-tracking clean; alchemy-timeclock #7 merged (zod high, dev); `uuid` alert dismissed (via `xcode` ← Capacitor CLI, build-time only); payroll-cb #5 closed + alert dismissed (see Remaining) |
 | sai-platform | `pnpm audit` clean (no deps PR); SAI-billed `CLAUDE_API_KEY` set; `~/.claude-sai` + direnv `CLAUDE_CONFIG_DIR` on the Air; Actions allowlist extended (`aquasecurity/trivy-action`, `aquasecurity/setup-trivy`, `anthropics/claude-code-security-review`); #326 merged (security checks, stacks nextjs,supabase,student-data); `--tier1` run on the Air, ruleset + Dependabot on — 2026-10-24 |
 
-### Next session (on the Mac mini)
-alchemy-timeclock iOS build: Capacitor 8.5.3 reaches the app only via a new
-build, and its `ios/` project lives only on the mini (none on the Air — don't
-regenerate with `npx cap add ios`). `npx cap sync ios` → bump version → Archive →
-upload → submit (App Store Connect already has a 1.2 draft).
+### Next session: Tier 2 rollout (+ one Tier 1 gap)
+Tier 2 = layers 0, 1, 2 and 5: `apply-to-repo.sh` (PR checks) + `repo-settings.sh`
+**without** `--tier1` (Dependabot alerts + security updates, no ruleset). Tier list is the
+plan doc's "Repo inventory" table. Claude-Skills (Tier 2) already has a ruleset — done.
+1. **Days LLC Tier 2** — shorestack-dashboard, shorestack-time, shorestack-reel,
+   ops-command-center, days-management-site. Done when: each has `security.yml` merged on its
+   default branch with `secrets`/`deps`/`ai-review` green on that PR, and `repo-settings.sh`
+   printed "Dependabot alerts: on" + "Dependabot security updates: on" (archived → skip, note it).
+2. **Carla + SAI Tier 2** — carlagentile-yoga, carla-yoga-shorts (Days LLC CI key unless Carla's
+   LLC should pay — ask), sai-portal-intake (SAI-billed key, `references/sai-account.md`).
+   Done when: same as item 1.
+3. **flavorcloud** — Tier 1 in the plan (Crowded Barrel; Shopify + n8n credentials) but absent
+   from this tracker. Done when: it's in the Done table with `--tier1` ruleset active, or
+   listed below as parked with the reason.
 
 ### Remaining
+- alchemy-timeclock iOS build (Mac mini only — its `ios/` lives there): `npx cap sync ios` → bump version → Archive → upload → submit (App Store Connect has a 1.2 draft); Capacitor 8.5.3 reaches the app only via a new build
 - SAI: sai-visas, sai-portal — **no app code yet** (docs/sketches + static demo HTML, no dependency files); history scan clean 2026-10-24. Apply the baseline once real code lands.
 - alchemy-order-form: **parked, not in use** — Vite 8 deps PR #1 left open; security checks + `--tier1` after it's back in use
-- Tier 2 repos; alerting in the PR monitor (`references/alerting.md`); deep audits (`references/deep-audit.md`)
+- Alerting in the PR monitor (`references/alerting.md`); deep audits (`references/deep-audit.md`)
 - harper-timeclock: iOS 1.3 (4) submitted 2026-10-24, manual release — click **Release This Version** once approved
 - payroll-cb: Tailwind 3 → 4 migration (planned upgrade). Dependabot #5 closed — it forced the major bump for a medium dev-only `postcss-selector-parser` alert, which was dismissed as tolerable risk
 - Stripe "creative-excellence" → password-mu.vercel.app: **keep** (live plan sync for the frozen Safe, last delivery 2026-10-15); delete once Safe's Vercel repoint to the monorepo lands
@@ -71,6 +81,9 @@ upload → submit (App Store Connect already has a 1.2 draft).
   2026-10-23) or cloud sessions can't reach its repos.
 - `apply-to-repo.sh` fails if the clone has a fetch refspec for a branch that
   was deleted on merge — unset it first.
+- Supabase's built-in mailer allows only a few emails an hour, and a rate-limited
+  `signInWithOtp` (429) clears the PKCE verifier cookie. When testing a magic link, request
+  ONE link and open that first email; a retry invalidates it.
 
 ## Open questions
 None. Resolved 2026-10-24: Harper is **Days LLC** (keys already correct);
