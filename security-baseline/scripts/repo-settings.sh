@@ -36,8 +36,16 @@ if [[ -n "$id" ]]; then
   gh api -X PUT "repos/$r/rulesets/$id" --input "$KIT/templates/ruleset-tier1.json" --silent
   echo "Ruleset security-baseline: updated"
 else
-  if ! gh api -X POST "repos/$r/rulesets" --input "$KIT/templates/ruleset-tier1.json" --silent; then
-    echo "Could not create the ruleset. Private repos need GitHub Pro/Team for rulesets." >&2
+  # gh's own error here is unreadable on a Free plan ("unsupported protocol
+  # scheme"), so capture it and say what actually went wrong.
+  if ! out="$(gh api -X POST "repos/$r/rulesets" --input "$KIT/templates/ruleset-tier1.json" --silent 2>&1)"; then
+    if [[ "$(gh api "repos/$r" --jq .private 2>/dev/null)" == "true" ]]; then
+      echo "Could not create the ruleset on $r: rulesets on PRIVATE repos need a paid plan" >&2
+      echo "(GitHub Pro for a personal account, GitHub Team for an org). Upgrade, then re-run." >&2
+    else
+      echo "Could not create the ruleset on $r." >&2
+    fi
+    echo "gh said: $(printf '%s' "$out" | head -n 1)" >&2
     exit 1
   fi
   echo "Ruleset security-baseline: created"
