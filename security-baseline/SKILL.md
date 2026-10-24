@@ -91,4 +91,13 @@ memory — the scripts redact; keep it that way.
 - **Frozen or absorbed repos** (code now lives in a monorepo): ship
   CVE-driven dependency fixes only; skip the workflow and ruleset there, since
   the monorepo's checks cover the code.
+- **Repos with an Actions allowlist** (`allowed_actions: selected`) fail the
+  security workflow with `startup_failure`, or a job dies in seconds with "action
+  ... is not allowed". Check `gh api repos/<o>/<r>/actions/permissions` first and
+  add `aquasecurity/trivy-action@*`, `aquasecurity/setup-trivy@*` (called inside
+  trivy-action) and `anthropics/claude-code-security-review@*` via a PUT to
+  `.../actions/permissions/selected-actions` (it replaces the list — repeat the
+  existing patterns).
+- **Repos that run `prettier --check .` in CI** flag the generated
+  `security.yml`. Run the repo's prettier on it and push to the baseline branch.
 - Progress tracker for the rollout: `../intent/0004-security-baseline-rollout.md`.
