@@ -24,7 +24,7 @@ Root docs: `CLAUDE.md` (instructions for Claude working in this repo), `DEFAULTS
 | `fleet-init` | Bootstrap a Fleet autonomous-build pipeline: queue-driven builder/validator agents on an always-on host, rendered from `templates/` via the `PARAMETERS.md` substitution contract. |
 | `apple-intelligence` | Verified facts and reachability gates for Siri / Spotlight / Apple Intelligence on iOS 27 + macOS 27 (App Intents, IndexedEntity, Foundation Models): which repo can reach what, the release-note hard constraints, the Xcode 27 migration list. Pass one; code patterns land after they compile. |
 
-The rest are domain skills for specific products and clients (Shopify/Cheersworthy, beehiiv/WhiskeyTribe, Circle.so, Toast POS, Obsidian vault management, video editing, and more).
+The rest are a few domain skills (SAI process sketches, frontend design, internal comms, Mac/Xcode cleanup, live-app maintenance). Client and shelved-project skills (Shopify/Cheersworthy, beehiiv, Circle.so, Toast, Obsidian, social/video) were pruned on 2026-10-29 and live at tag `archive/pruned-skills-2026-10-29`.
 
 ## Installation
 

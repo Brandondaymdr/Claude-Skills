@@ -35,7 +35,9 @@ The three carry the intent → plan artifact chain (`DEFAULTS-ADR-0002.md`): res
 - `security-baseline` — layered security (gitleaks hook, PR security checks, Cloudflare deep audit, hardening checklists, alerting) applied identically across Days LLC, Crowded Barrel and SAI repos; pairs with `rules/security.md`
 - `fleet-init` — bootstrap a Fleet autonomous-build pipeline (`templates/` are the canonical Fleet scripts; `PARAMETERS.md` defines the `{{PLACEHOLDER}}` substitution contract)
 
-**Domain skills** (client/product work): `apple-intelligence` (Siri / Spotlight / App Intents gates for the native + Capacitor apps), `beehiiv*` (WhiskeyTribe newsletter), `cheersworthy-*` (Shopify spirits store), `circle-so-*` (Carla Gentile Yoga community), `obsidian-*` (vault management), `sai-process-sketch` (SAI Student Portal stakeholder sketches), `shopify-*`, `toast-*` (POS), plus `adobe-premiere`, `frontend-design`, `instagram`, `internal-comms`, `n8n`, `photoshop-thumbnails`, `slack-comms-builder`, `video`, `whiskeysomm-brand`, `youtube-channel`.
+**Domain skills** (client/product work): `apple-intelligence` (Siri / Spotlight / App Intents gates for the native + Capacitor apps), `sai-process-sketch` (SAI Student Portal stakeholder sketches), plus `frontend-design`, `internal-comms`, `live-app-maintenance`, `mac-mini-cleanup`, `xcode-cleanup`.
+
+**Pruned 2026-10-29** to keep the CLI skill listing under its description budget (25 client/shelved-project skills: `beehiiv*`, `cheersworthy-*`, `circle-so-*`, `obsidian-*`, `shopify-*`, `toast-*`, `instagram`, `n8n`, `photoshop-thumbnails`, `slack-comms-builder`, `whiskeysomm-brand`, `youtube-channel`). They are preserved at tag `archive/pruned-skills-2026-10-29`; restore one with `git checkout archive/pruned-skills-2026-10-29 -- <skill>` and a PR.
 
 ## Root documents
 
